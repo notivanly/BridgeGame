@@ -303,20 +303,29 @@ function startSimulation() {
 
     const mx = (a.x + c.x) / 2, my = (a.y + c.y) / 2;
     const angle = Math.atan2(c.y - a.y, c.x - a.x);
-    // Normalize angle to 0..90° regardless of which direction the beam was
-    // drawn, so a beam drawn right-to-left isn't mistaken for being steep.
-    const tiltFromHorizontal = Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle)));
-    const isRoadlike = Math.min(tiltFromHorizontal, Math.PI - tiltFromHorizontal) < 0.4; // ~23°
+    // Skins are visual + vehicle collision surface. IMPORTANT: they are
+    // isStatic, so we do NOT let vehicles collide with them — static bodies
+    // absorb all weight without passing any force to the dynamic joint bodies,
+    // which would mean joints never sag no matter how heavy the vehicle.
+    // Vehicle load is applied directly as force to joints each frame instead.
     const skin = Bodies.rectangle(mx, my, len, material.thickness, {
       isStatic: true, angle,
-      collisionFilter: isRoadlike
-        ? { category: CAT.BEAM, mask: CAT.GROUND | CAT.VEHICLE }
-        : { category: CAT.BEAM, mask: 0 }, // steep bracing — purely structural, cars pass through
+      collisionFilter: { category: CAT.BEAM, mask: 0 }, // no vehicle collision — force-applied instead
     });
     World.add(engine.world, skin);
 
-    beamPhys.set(b.id, { constraint, skin, bodyA, bodyB, broken: false, material, len });
+    beamPhys.set(b.id, { constraint, skin, bodyA, bodyB, broken: false, material, len, isRoadlike: Math.min(Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle))), Math.PI - Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle)))) < 0.4 });
   }
+
+  // Invisible static road surface for each cliff so vehicles have something
+  // to physically drive on (since beams no longer collide with vehicles directly)
+  const roadL = Bodies.rectangle(CHASM_LEFT / 2, GROUND_Y + 3, CHASM_LEFT, 6, {
+    isStatic: true, collisionFilter: { category: CAT.GROUND, mask: CAT.VEHICLE },
+  });
+  const roadR = Bodies.rectangle(CHASM_RIGHT + (W - CHASM_RIGHT) / 2, GROUND_Y + 3, W - CHASM_RIGHT, 6, {
+    isStatic: true, collisionFilter: { category: CAT.GROUND, mask: CAT.VEHICLE },
+  });
+  World.add(engine.world, [roadL, roadR]);
 
   mode = 'simulating';
   refreshHUD();
@@ -350,17 +359,48 @@ function simulationStep() {
   // resting tension) -> break. A complex truss naturally settles into some
   // resting tension just from its own weight; that's normal, not failure.
   // We only care about load added on top of that (e.g. a vehicle's weight).
+  // Apply vehicle load directly as downward force to nearby free joints.
+  // This is the actual load path: vehicle weight -> joints -> constraints sag.
+  // We skip this during settling so self-weight doesn't pre-load the baseline.
+  if (settleFrames === 0) {
+    for (const v of vehicles) {
+      if (v.state !== 'active') continue;
+      const vx = v.body.position.x;
+      const vy = v.body.position.y;
+      for (const [, jBody] of jointBodies) {
+        if (jBody.isStatic) continue;
+        const dx = jBody.position.x - vx;
+        const dy = jBody.position.y - vy;
+        const d = Math.hypot(dx, dy);
+        // Apply force if joint is within horizontal range of the vehicle and
+        // reasonably close vertically (within 80px below the vehicle base).
+        const withinX = Math.abs(dx) < v.w * 0.9;
+        const withinY = dy > -10 && dy < 80;
+        if (withinX && withinY) {
+          const proximity = 1 - Math.abs(dx) / (v.w * 0.9); // 0..1, strongest at centre
+          Body.applyForce(jBody, jBody.position, {
+            x: 0,
+            y: v.body.mass * engine.gravity.y * 0.012 * proximity,
+          });
+        }
+      }
+    }
+  }
+
   for (const [beamId, bp] of beamPhys) {
     if (bp.broken) continue;
     const { sag, dx, dy } = computeMaxSag(bp);
 
-    // Sag-based stress: show color gradient as sag approaches the limit.
-    // Show amber at 40% of limit, full red at 90%.
     bp.stress = settleFrames === 0 ? Math.min(1.4, sag / (bp.material.sagLimit * 0.9)) : 0;
 
     if (settleFrames === 0 && sag > bp.material.sagLimit) {
       World.remove(engine.world, [bp.constraint, bp.skin]);
       bp.broken = true;
+      // If the center of the bridge has collapsed, call it a failure
+      const midX = (bp.bodyA.position.x + bp.bodyB.position.x) / 2;
+      if (midX > CHASM_LEFT && midX < CHASM_RIGHT && sag > bp.material.sagLimit * 2) {
+        triggerLoss(bp.material.name + ' beam');
+      }
     } else {
       const mx = (bp.bodyA.position.x + bp.bodyB.position.x) / 2;
       const my = (bp.bodyA.position.y + bp.bodyB.position.y) / 2;
@@ -375,10 +415,10 @@ function simulationStep() {
 
 function spawnVehicle(typeKey) {
   if (mode !== 'simulating') return;
-  // Only one vehicle at a time — block until the current one has fully cleared
-  const anyActive = vehicles.some(v => v.state === 'active');
-  if (anyActive) {
-    flashMessage('Wait for the current vehicle to cross before spawning another.');
+  // Allow up to 5 vehicles; block only if spawn zone (left entry) is occupied
+  const spawnZoneOccupied = vehicles.some(v => v.state === 'active' && v.body.position.x < 60);
+  if (spawnZoneOccupied) {
+    flashMessage('Entry zone busy — wait a moment then try again.');
     return;
   }
   const type = VEHICLE_TYPES[typeKey];
@@ -386,7 +426,7 @@ function spawnVehicle(typeKey) {
   const body = Bodies.rectangle(startX, GROUND_Y - type.h / 2 - 6, type.w, type.h, {
     chamfer: { radius: Math.min(10, type.h * 0.4) },
     friction: 0.9, frictionStatic: 1, restitution: 0.02,
-    collisionFilter: { category: CAT.VEHICLE, mask: CAT.GROUND | CAT.BEAM | CAT.VEHICLE },
+    collisionFilter: { category: CAT.VEHICLE, mask: CAT.GROUND | CAT.VEHICLE },
   });
   Body.setMass(body, type.mass);
   Body.setInertia(body, Infinity);
@@ -400,20 +440,17 @@ function stepVehicles() {
   totalLoadKg = 0;
   for (const v of vehicles) {
     if (v.state !== 'active') continue;
-    Body.setVelocity(v.body, { x: v.speed, y: v.body.velocity.y });
+    Body.setVelocity(v.body, { x: v.speed, y: 0 });
     Body.setAngle(v.body, 0);
     Body.setAngularVelocity(v.body, 0);
+    // Keep vehicle at road level at all times — it "drives" across,
+    // load is applied to joints via force, not physics collision.
+    Body.setPosition(v.body, { x: v.body.position.x, y: GROUND_Y - v.h / 2 - 3 });
     v.wheelPhase += v.speed * 0.35;
 
     const px = v.body.position.x;
-    const onBridge = px > CHASM_LEFT && px < CHASM_RIGHT;
-    if (onBridge) totalLoadKg += v.kg;
+    if (px > CHASM_LEFT && px < CHASM_RIGHT) totalLoadKg += v.kg;
 
-    if (v.body.position.y > GROUND_Y + 260) {
-      v.state = 'fallen';
-      triggerLoss(VEHICLE_TYPES[v.typeKey].label);
-      return;
-    }
     if (v.body.position.x > W + 60) {
       v.state = 'done';
       World.remove(engine.world, v.body);
