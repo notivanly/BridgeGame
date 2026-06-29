@@ -27,17 +27,17 @@ const FIXED_ANCHORS = [
 const MATERIALS = {
   wood: {
     key: 'wood', name: 'Wood', color: '#c89a64', dark: '#8a6239',
-    costPerMeter: 14, density: 0.0019, sagLimit: 8, thickness: 8,
+    costPerMeter: 14, density: 0.0019, sagLimit: 4, thickness: 8,
     strength: 2, weight: 1, note: 'Cheap & light, snaps under heavy load'
   },
   steel: {
     key: 'steel', name: 'Steel', color: '#a9bdce', dark: '#5d6e7c',
-    costPerMeter: 135, density: 0.0048, sagLimit: 38, thickness: 7,
+    costPerMeter: 135, density: 0.0048, sagLimit: 22, thickness: 7,
     strength: 5, weight: 3, note: 'Strongest, but pricey and heavy'
   },
   concrete: {
     key: 'concrete', name: 'Concrete', color: '#b3b1a6', dark: '#76746c',
-    costPerMeter: 68, density: 0.0066, sagLimit: 18, thickness: 11,
+    costPerMeter: 68, density: 0.0066, sagLimit: 11, thickness: 11,
     strength: 3, weight: 5, note: 'Solid in the middle, very heavy'
   },
 };
@@ -45,16 +45,16 @@ const MATERIALS = {
 // ---------- Vehicle waves (mass in sim units, kg shown is flavor) ----------
 // ---------- Vehicle types (for manual spawner) ----------
 const VEHICLE_TYPES = {
-  sedan:     { label: 'Sedan',      kg: 1400,  mass: 14,  w: 46,  h: 20, color: '#3b6ea5', speed: 3.2, emoji: '🚗' },
-  van:       { label: 'Van',        kg: 2800,  mass: 26,  w: 56,  h: 26, color: '#3b8a5a', speed: 2.8, emoji: '🚐' },
-  truck:     { label: 'Box Truck',  kg: 9000,  mass: 55,  w: 76,  h: 36, color: '#c97a2b', speed: 2.3, emoji: '🚚' },
-  semi:      { label: 'Semi',       kg: 18000, mass: 100, w: 104, h: 42, color: '#a23b3b', speed: 1.8, emoji: '🚛' },
-  tank:      { label: 'Tank',       kg: 60000, mass: 280, w: 120, h: 48, color: '#5a4a2a', speed: 1.2, emoji: '🪖' },
+  sedan:  { label: 'Sedan',     kg: 1400,  mass: 60,   w: 46,  h: 20, color: '#3b6ea5', speed: 3.2, emoji: '🚗' },
+  van:    { label: 'Van',       kg: 2800,  mass: 130,  w: 56,  h: 26, color: '#3b8a5a', speed: 2.8, emoji: '🚐' },
+  truck:  { label: 'Box Truck', kg: 9000,  mass: 380,  w: 76,  h: 36, color: '#c97a2b', speed: 2.3, emoji: '🚚' },
+  semi:   { label: 'Semi',      kg: 18000, mass: 700,  w: 104, h: 42, color: '#a23b3b', speed: 1.8, emoji: '🚛' },
+  tank:   { label: 'Tank',      kg: 60000, mass: 2200, w: 120, h: 48, color: '#5a4a2a', speed: 1.2, emoji: '🪖' },
 };
 
 const BUDGET = 500000;
-const GRAVITY_TARGET = 1.15;
-const SETTLE_TOTAL = 75;
+const GRAVITY_TARGET = 2.2;
+const SETTLE_TOTAL = 100;
 
 // ---------- Collision categories ----------
 const CAT = { GROUND: 0x0001, BEAM: 0x0002, VEHICLE: 0x0004, JOINT: 0x0008 };
@@ -263,12 +263,12 @@ function startSimulation() {
   // arbitrary topologies (including closed loops/triangles) than chaining
   // independently-rotating rigid rectangles together.
   const jointMass = new Map();
-  for (const j of joints) jointMass.set(j.id, 2.2); // small base mass
+  for (const j of joints) jointMass.set(j.id, 0.5); // tiny base mass
   for (const b of beams) {
     const material = MATERIALS[b.material];
-    const beamMass = b.length * material.thickness * material.density;
-    jointMass.set(b.aId, (jointMass.get(b.aId) || 2.2) + beamMass / 2);
-    jointMass.set(b.bId, (jointMass.get(b.bId) || 2.2) + beamMass / 2);
+    const beamMass = b.length * material.thickness * material.density * 0.05; // much lighter
+    jointMass.set(b.aId, (jointMass.get(b.aId) || 0.5) + beamMass / 2);
+    jointMass.set(b.bId, (jointMass.get(b.bId) || 0.5) + beamMass / 2);
   }
 
   for (const j of joints) {
@@ -297,7 +297,7 @@ function startSimulation() {
     const len = b.length;
 
     const constraint = Constraint.create({
-      bodyA, bodyB, length: len, stiffness: 0.95, damping: 0.35,
+      bodyA, bodyB, length: len, stiffness: 0.3, damping: 0.4,
     });
     World.add(engine.world, constraint);
 
@@ -375,11 +375,10 @@ function simulationStep() {
 
 function spawnVehicle(typeKey) {
   if (mode !== 'simulating') return;
-  // Don't spawn if another vehicle is still near the entry zone
-  const entryX = 80;
-  const tooClose = vehicles.some(v => v.state === 'active' && v.body.position.x < entryX);
-  if (tooClose) {
-    flashMessage('Wait for the previous vehicle to clear the entry before spawning another.');
+  // Only one vehicle at a time — block until the current one has fully cleared
+  const anyActive = vehicles.some(v => v.state === 'active');
+  if (anyActive) {
+    flashMessage('Wait for the current vehicle to cross before spawning another.');
     return;
   }
   const type = VEHICLE_TYPES[typeKey];
