@@ -81,12 +81,22 @@
   </main>
 
   <footer class="hud-bottom">
-    <div class="legend">
-      <span>Beam stress</span>
-      <div class="legend-bar"></div>
-      <span>low → snapping</span>
+    <div class="spawner" id="spawner">
+      <span class="spawner-label">SPAWN VEHICLE →</span>
+      <button class="spawn-btn" data-type="sedan">🚗 Sedan<br><span>1,400 kg</span></button>
+      <button class="spawn-btn" data-type="van">🚐 Van<br><span>2,800 kg</span></button>
+      <button class="spawn-btn" data-type="truck">🚚 Box Truck<br><span>9,000 kg</span></button>
+      <button class="spawn-btn" data-type="semi">🚛 Semi<br><span>18,000 kg</span></button>
+      <button class="spawn-btn danger" data-type="tank">🪖 Tank<br><span>60,000 kg</span></button>
     </div>
-    <div id="instructions">Drag from an anchor point to draw your first beam.</div>
+    <div class="bottom-strip">
+      <div class="legend">
+        <span>Beam stress</span>
+        <div class="legend-bar"></div>
+        <span>low → snapping</span>
+      </div>
+      <div id="instructions">Drag from an anchor point to draw your first beam.</div>
+    </div>
   </footer>
 
 </div>
