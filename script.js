@@ -27,17 +27,17 @@ const FIXED_ANCHORS = [
 const MATERIALS = {
   wood: {
     key: 'wood', name: 'Wood', color: '#c89a64', dark: '#8a6239',
-    costPerMeter: 14, density: 0.0019, breakDistance: 18, thickness: 8,
+    costPerMeter: 14, density: 0.0019, sagLimit: 8, thickness: 8,
     strength: 2, weight: 1, note: 'Cheap & light, snaps under heavy load'
   },
   steel: {
     key: 'steel', name: 'Steel', color: '#a9bdce', dark: '#5d6e7c',
-    costPerMeter: 135, density: 0.0048, breakDistance: 42, thickness: 7,
+    costPerMeter: 135, density: 0.0048, sagLimit: 38, thickness: 7,
     strength: 5, weight: 3, note: 'Strongest, but pricey and heavy'
   },
   concrete: {
     key: 'concrete', name: 'Concrete', color: '#b3b1a6', dark: '#76746c',
-    costPerMeter: 68, density: 0.0066, breakDistance: 28, thickness: 11,
+    costPerMeter: 68, density: 0.0066, sagLimit: 18, thickness: 11,
     strength: 3, weight: 5, note: 'Solid in the middle, very heavy'
   },
 };
@@ -279,6 +279,7 @@ function startSimulation() {
       frictionAir: 0.12,
     });
     if (!j.fixed) Body.setMass(body, jointMass.get(j.id));
+    body._origY = j.y; // store original Y for sag-based break detection
     jointBodies.set(j.id, body);
     World.add(engine.world, body);
   }
@@ -314,18 +315,19 @@ function startSimulation() {
     });
     World.add(engine.world, skin);
 
-    beamPhys.set(b.id, { constraint, skin, bodyA, bodyB, broken: false, material, len, baseline: undefined });
+    beamPhys.set(b.id, { constraint, skin, bodyA, bodyB, broken: false, material, len });
   }
 
   mode = 'simulating';
   refreshHUD();
 }
 
-function computeDeformation(bp) {
+function computeMaxSag(bp) {
+  const sagA = bp.bodyA.isStatic ? 0 : Math.max(0, bp.bodyA.position.y - bp.bodyA._origY);
+  const sagB = bp.bodyB.isStatic ? 0 : Math.max(0, bp.bodyB.position.y - bp.bodyB._origY);
   const dx = bp.bodyB.position.x - bp.bodyA.position.x;
   const dy = bp.bodyB.position.y - bp.bodyA.position.y;
-  const currentDist = Math.hypot(dx, dy);
-  return { deformation: Math.abs(currentDist - bp.len), dx, dy };
+  return { sag: Math.max(sagA, sagB), dx, dy };
 }
 
 // ============================================================
@@ -350,23 +352,13 @@ function simulationStep() {
   // We only care about load added on top of that (e.g. a vehicle's weight).
   for (const [beamId, bp] of beamPhys) {
     if (bp.broken) continue;
-    const { deformation, dx, dy } = computeDeformation(bp);
+    const { sag, dx, dy } = computeMaxSag(bp);
 
-    // During settling: keep updating baseline to the latest resting value
-    // so it accurately reflects the fully-settled state, not just frame 0.
-    if (settleFrames > 0) {
-      bp.baseline = deformation;
-    } else if (bp.baseline === undefined) {
-      bp.baseline = deformation; // safety fallback
-    }
+    // Sag-based stress: show color gradient as sag approaches the limit.
+    // Show amber at 40% of limit, full red at 90%.
+    bp.stress = settleFrames === 0 ? Math.min(1.4, sag / (bp.material.sagLimit * 0.9)) : 0;
 
-    const effectiveLimit = bp.material.breakDistance * Math.max(1, bp.len / 150);
-    const added = Math.max(0, deformation - bp.baseline);
-    // Scale stress so the color gradient is visible well before breaking:
-    // 0.3 of the limit already shows amber; 0.75 shows red.
-    bp.stress = Math.min(1.4, added / (effectiveLimit * 0.75));
-
-    if (settleFrames === 0 && added > effectiveLimit) {
+    if (settleFrames === 0 && sag > bp.material.sagLimit) {
       World.remove(engine.world, [bp.constraint, bp.skin]);
       bp.broken = true;
     } else {
@@ -383,6 +375,13 @@ function simulationStep() {
 
 function spawnVehicle(typeKey) {
   if (mode !== 'simulating') return;
+  // Don't spawn if another vehicle is still near the entry zone
+  const entryX = 80;
+  const tooClose = vehicles.some(v => v.state === 'active' && v.body.position.x < entryX);
+  if (tooClose) {
+    flashMessage('Wait for the previous vehicle to clear the entry before spawning another.');
+    return;
+  }
   const type = VEHICLE_TYPES[typeKey];
   const startX = -type.w / 2 - 10;
   const body = Bodies.rectangle(startX, GROUND_Y - type.h / 2 - 6, type.w, type.h, {
