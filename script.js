@@ -25,28 +25,28 @@ const FIXED_ANCHORS = [
 const MATERIALS = {
   wood: {
     key:'wood', name:'Wood', color:'#c89a64', dark:'#8a6239',
-    costPerMeter:14, thickness:8, maxStrain:0.03,
+    costPerMeter:14, thickness:8, maxStrain:0.018,
     strength:2, weight:1, note:'Cheap & light. Snaps under heavy loads.'
   },
   steel: {
     key:'steel', name:'Steel', color:'#a9bdce', dark:'#5d6e7c',
-    costPerMeter:135, thickness:7, maxStrain:0.12,
+    costPerMeter:135, thickness:7, maxStrain:0.10,
     strength:5, weight:3, note:'Strongest by far. Expensive and heavy.'
   },
   concrete: {
     key:'concrete', name:'Concrete', color:'#b3b1a6', dark:'#76746c',
-    costPerMeter:68, thickness:11, maxStrain:0.055,
+    costPerMeter:68, thickness:11, maxStrain:0.042,
     strength:3, weight:5, note:'Decent strength, but very heavy on long spans.'
   },
 };
 
 // ---------- Vehicle types ----------
 const VEHICLE_TYPES = {
-  sedan: { label:'Sedan',     kg:1400,  force:0.28, w:46,  h:20, color:'#3b6ea5', speed:2.8, emoji:'🚗' },
-  van:   { label:'Van',       kg:2800,  force:0.55, w:56,  h:26, color:'#3b8a5a', speed:2.5, emoji:'🚐' },
-  truck: { label:'Box Truck', kg:9000,  force:1.6,  w:76,  h:36, color:'#c97a2b', speed:2.1, emoji:'🚚' },
-  semi:  { label:'Semi',      kg:18000, force:3.2,  w:104, h:42, color:'#a23b3b', speed:1.7, emoji:'🚛' },
-  tank:  { label:'Tank',      kg:60000, force:9.5,  w:120, h:48, color:'#5a4a2a', speed:1.2, emoji:'🪖' },
+  sedan: { label:'Sedan',     kg:1400,  force:0.55,  w:46,  h:20, color:'#3b6ea5', speed:2.8, emoji:'🚗' },
+  van:   { label:'Van',       kg:2800,  force:1.1,   w:56,  h:26, color:'#3b8a5a', speed:2.5, emoji:'🚐' },
+  truck: { label:'Box Truck', kg:9000,  force:3.2,   w:76,  h:36, color:'#c97a2b', speed:2.1, emoji:'🚚' },
+  semi:  { label:'Semi',      kg:18000, force:6.5,   w:104, h:42, color:'#a23b3b', speed:1.7, emoji:'🚛' },
+  tank:  { label:'Tank',      kg:60000, force:20.0,  w:120, h:48, color:'#5a4a2a', speed:1.2, emoji:'🪖' },
 };
 
 const BUDGET = 500000;
@@ -181,19 +181,41 @@ function distToSegment(px,py,x1,y1,x2,y2) {
 function startSimulation() {
   if (beams.length === 0) { flashMessage('Build at least one beam first.'); return; }
 
-  // Build index map: joint.id -> simJoints index
   const jMap = new Map();
   simJoints = joints.map((j, i) => {
     jMap.set(j.id, i);
     return { x: j.x, y: j.y, px: j.x, py: j.y, fixed: !!j.fixed };
   });
 
-  simBeams = beams.map(b => {
+  // Build beams first pass
+  const rawBeams = beams.map(b => {
     const ai = jMap.get(b.aId), bi = jMap.get(b.bId);
     const sja = simJoints[ai], sjb = simJoints[bi];
     const restLen = Math.hypot(sjb.x - sja.x, sjb.y - sja.y);
-    return { ai, bi, restLen, material: MATERIALS[b.material], broken: false, stress: 0 };
+    return { ai, bi, restLen, material: MATERIALS[b.material] };
   });
+
+  // Subdivide every beam into segments with free intermediate joints.
+  // Without this, a beam between two fixed anchors has zero free joints
+  // and therefore zero degrees of freedom — it can never sag or break.
+  const SEG_LEN = 38; // target max segment length (px)
+  simBeams = [];
+  for (const rb of rawBeams) {
+    const sja = simJoints[rb.ai], sjb = simJoints[rb.bi];
+    const nSegs = Math.max(2, Math.ceil(rb.restLen / SEG_LEN));
+    const segLen = rb.restLen / nSegs;
+    let prevIdx = rb.ai;
+    for (let s = 1; s < nSegs; s++) {
+      const t = s / nSegs;
+      const x = sja.x + (sjb.x - sja.x) * t;
+      const y = sja.y + (sjb.y - sja.y) * t;
+      const newIdx = simJoints.length;
+      simJoints.push({ x, y, px: x, py: y, fixed: false });
+      simBeams.push({ ai: prevIdx, bi: newIdx, restLen: segLen, material: rb.material, broken: false, stress: 0 });
+      prevIdx = newIdx;
+    }
+    simBeams.push({ ai: prevIdx, bi: rb.bi, restLen: segLen, material: rb.material, broken: false, stress: 0 });
+  }
 
   vehicles = [];
   settleFrames = SETTLE_TOTAL;
@@ -217,20 +239,21 @@ function simulationStep() {
   if (settleFrames === 0) {
     for (const v of vehicles) {
       const type = VEHICLE_TYPES[v.typeKey];
-      let affectedJoints = [];
+      const affected = [];
       for (let i = 0; i < simJoints.length; i++) {
         const sj = simJoints[i];
         if (sj.fixed) continue;
         const dx = Math.abs(sj.x - v.x);
-        const dy = sj.y - (GROUND_Y + 5);   // how far below road surface
-        if (dx < type.w * 0.7 && dy > -5 && dy < 120)
-          affectedJoints.push({ i, dx });
+        const dy = sj.y - (GROUND_Y + 5);
+        if (dx < type.w * 0.75 && dy > -10 && dy < 130) {
+          const proximity = 1 - dx / (type.w * 0.75);
+          affected.push({ i, proximity });
+        }
       }
-      if (affectedJoints.length > 0) {
-        const forcePerJoint = type.force / affectedJoints.length;
-        for (const { i, dx } of affectedJoints) {
-          const proximity = 1 - dx / (type.w * 0.7);
-          simJoints[i].y += forcePerJoint * proximity;
+      if (affected.length > 0) {
+        const totalW = affected.reduce((s, a) => s + a.proximity, 0);
+        for (const { i, proximity } of affected) {
+          simJoints[i].y += type.force * (proximity / totalW);
         }
       }
     }
