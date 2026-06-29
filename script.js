@@ -25,37 +25,37 @@ const FIXED_ANCHORS = [
 const MATERIALS = {
   wood: {
     key:'wood', name:'Wood', color:'#c89a64', dark:'#8a6239',
-    costPerMeter:14, thickness:8, sagBreak:6,
+    costPerMeter:14, thickness:8, sagBreak:3,
     strength:2, weight:1, note:'Cheap & light. Snaps under heavy loads.'
   },
   steel: {
     key:'steel', name:'Steel', color:'#a9bdce', dark:'#5d6e7c',
-    costPerMeter:135, thickness:7, sagBreak:45,
+    costPerMeter:135, thickness:7, sagBreak:22,
     strength:5, weight:3, note:'Strongest by far. Expensive and heavy.'
   },
   concrete: {
     key:'concrete', name:'Concrete', color:'#b3b1a6', dark:'#76746c',
-    costPerMeter:68, thickness:11, sagBreak:18,
+    costPerMeter:68, thickness:11, sagBreak:9,
     strength:3, weight:5, note:'Decent strength, but very heavy on long spans.'
   },
 };
 
 // ---------- Vehicle types ----------
 const VEHICLE_TYPES = {
-  sedan: { label:'Sedan',     kg:1400,  force:4.5,   w:46,  h:20, color:'#3b6ea5', speed:2.8, emoji:'🚗' },
-  van:   { label:'Van',       kg:2800,  force:9.0,   w:56,  h:26, color:'#3b8a5a', speed:2.5, emoji:'🚐' },
-  truck: { label:'Box Truck', kg:9000,  force:26.0,  w:76,  h:36, color:'#c97a2b', speed:2.1, emoji:'🚚' },
-  semi:  { label:'Semi',      kg:18000, force:52.0,  w:104, h:42, color:'#a23b3b', speed:1.7, emoji:'🚛' },
-  tank:  { label:'Tank',      kg:60000, force:160.0, w:120, h:48, color:'#5a4a2a', speed:1.2, emoji:'🪖' },
+  sedan: { label:'Sedan',     kg:1400,  force:0.8,  w:46,  h:20, color:'#3b6ea5', speed:2.8, emoji:'🚗' },
+  van:   { label:'Van',       kg:2800,  force:1.6,  w:56,  h:26, color:'#3b8a5a', speed:2.5, emoji:'🚐' },
+  truck: { label:'Box Truck', kg:9000,  force:4.5,  w:76,  h:36, color:'#c97a2b', speed:2.1, emoji:'🚚' },
+  semi:  { label:'Semi',      kg:18000, force:9.0,  w:104, h:42, color:'#a23b3b', speed:1.7, emoji:'🚛' },
+  tank:  { label:'Tank',      kg:60000, force:28.0, w:120, h:48, color:'#5a4a2a', speed:1.2, emoji:'🪖' },
 };
 
 const BUDGET = 500000;
 
 // Verlet simulation constants
-const GRAVITY      = 0.38;
-const DAMPING      = 0.97;
-const ITERATIONS   = 5;    // fewer = more compliant = real sag under load
-const SETTLE_TOTAL = 80;
+const GRAVITY      = 0.2;
+const DAMPING      = 0.96;
+const ITERATIONS   = 8;
+const SETTLE_TOTAL = 120;
 
 // ---------- Build state ----------
 let joints = [], beams = [], nextId = 1, totalCost = 0, activeMaterial = 'wood';
@@ -302,8 +302,11 @@ function simulationStep() {
       if (sag > sb.material.sagBreak) {
         sb.broken = true;
         const midX = (sja.x + sjb.x) / 2;
-        if (midX > CHASM_LEFT && midX < CHASM_RIGHT && mode === 'simulating') {
-          triggerLoss(sb.material.name);
+        if (midX > CHASM_LEFT && midX < CHASM_RIGHT) {
+          // Release both joints so the collapse cascades naturally
+          if (!sja.fixed) { sja.px = sja.x; }
+          if (!sjb.fixed) { sjb.px = sjb.x; }
+          if (mode === 'simulating') triggerLoss(sb.material.name);
         }
       }
     }
