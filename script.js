@@ -14,7 +14,7 @@ const GROUND_Y = 420;            // road level on top of the cliffs
 const CHASM_LEFT = 260;
 const CHASM_RIGHT = 740;
 const METERS_PER_PIXEL = 0.05;   // 20px = 1 meter (for cost/span readouts)
-const SNAP_RADIUS = 18;
+const SNAP_RADIUS = 30;
 
 const FIXED_ANCHORS = [
   { x: CHASM_LEFT,  y: GROUND_Y },
@@ -530,17 +530,38 @@ function drawSpanDimension() {
 }
 
 function drawAnchors() {
-  ctx.fillStyle = '#e8a33d';
   for (const a of FIXED_ANCHORS) {
     ctx.beginPath();
-    ctx.arc(a.x, a.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(232,163,61,0.25)';
+    ctx.arc(a.x, a.y, 12, 0, Math.PI * 2);
     ctx.fill();
+    ctx.beginPath();
+    ctx.fillStyle = '#e8a33d';
+    ctx.arc(a.x, a.y, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#16212c';
+    ctx.stroke();
   }
 }
 
 function drawJointsBuildMode() {
   for (const j of joints) {
     if (j.fixed) continue;
+
+    // Warn if this free joint is suspiciously close to an anchor but not
+    // actually snapped to it — likely an accidental near-miss.
+    const nearMiss = FIXED_ANCHORS.some(a => dist(j.x, j.y, a.x, a.y) < 45);
+    if (nearMiss) {
+      ctx.beginPath();
+      ctx.strokeStyle = '#d4483a';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([3, 3]);
+      ctx.arc(j.x, j.y, 14, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
     ctx.beginPath();
     ctx.fillStyle = '#f2ecdd';
     ctx.arc(j.x, j.y, 5, 0, Math.PI * 2);
@@ -705,7 +726,7 @@ function refreshHUD() {
 
   if (mode === 'build') {
     el.wave.textContent = `Ready — ${WAVES.length} waves ahead`;
-    el.instructions.textContent = 'Drag from an anchor (amber bolt) or beam end to draw a new beam. Click a beam to delete it.';
+    el.instructions.textContent = 'Drag from an anchor (amber bolt) or beam end to draw a new beam. A red dashed ring means that joint isn\'t actually snapped to the anchor — drag it away and redraw. Click a beam to delete it.';
   } else if (mode === 'simulating') {
     el.wave.textContent = WAVES[waveIndex].label;
     el.instructions.textContent = `Incoming: ${WAVES[waveIndex].kg} vehicles. Watch the stress colors — red means about to snap.`;
