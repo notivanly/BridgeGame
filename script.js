@@ -302,9 +302,15 @@ function startSimulation() {
 
     const mx = (a.x + c.x) / 2, my = (a.y + c.y) / 2;
     const angle = Math.atan2(c.y - a.y, c.x - a.x);
+    // Normalize angle to 0..90° regardless of which direction the beam was
+    // drawn, so a beam drawn right-to-left isn't mistaken for being steep.
+    const tiltFromHorizontal = Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle)));
+    const isRoadlike = Math.min(tiltFromHorizontal, Math.PI - tiltFromHorizontal) < 0.4; // ~23°
     const skin = Bodies.rectangle(mx, my, len, material.thickness, {
       isStatic: true, angle,
-      collisionFilter: { category: CAT.BEAM, mask: CAT.GROUND | CAT.VEHICLE },
+      collisionFilter: isRoadlike
+        ? { category: CAT.BEAM, mask: CAT.GROUND | CAT.VEHICLE }
+        : { category: CAT.BEAM, mask: 0 }, // steep bracing — purely structural, cars pass through
     });
     World.add(engine.world, skin);
 
