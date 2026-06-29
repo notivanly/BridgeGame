@@ -43,12 +43,14 @@ const MATERIALS = {
 };
 
 // ---------- Vehicle waves (mass in sim units, kg shown is flavor) ----------
-const WAVES = [
-  { label: 'Wave 1 · Sedans',        kg: '~1,400 kg',  count: 4, mass: 14,  w: 46,  h: 20, color: '#3b6ea5', gap: 110, speed: 3.2 },
-  { label: 'Wave 2 · Vans & Pickups', kg: '~2,800 kg',  count: 4, mass: 26,  w: 56,  h: 26, color: '#3b8a5a', gap: 130, speed: 2.8 },
-  { label: 'Wave 3 · Box Trucks',     kg: '~9,000 kg',  count: 3, mass: 55,  w: 76,  h: 36, color: '#c97a2b', gap: 170, speed: 2.3 },
-  { label: 'Wave 4 · Semi Trucks',    kg: '~18,000 kg', count: 2, mass: 100, w: 104, h: 42, color: '#a23b3b', gap: 220, speed: 1.8 },
-];
+// ---------- Vehicle types (for manual spawner) ----------
+const VEHICLE_TYPES = {
+  sedan:     { label: 'Sedan',      kg: 1400,  mass: 14,  w: 46,  h: 20, color: '#3b6ea5', speed: 3.2, emoji: '🚗' },
+  van:       { label: 'Van',        kg: 2800,  mass: 26,  w: 56,  h: 26, color: '#3b8a5a', speed: 2.8, emoji: '🚐' },
+  truck:     { label: 'Box Truck',  kg: 9000,  mass: 55,  w: 76,  h: 36, color: '#c97a2b', speed: 2.3, emoji: '🚚' },
+  semi:      { label: 'Semi',       kg: 18000, mass: 100, w: 104, h: 42, color: '#a23b3b', speed: 1.8, emoji: '🚛' },
+  tank:      { label: 'Tank',       kg: 60000, mass: 280, w: 120, h: 48, color: '#5a4a2a', speed: 1.2, emoji: '🪖' },
+};
 
 const BUDGET = 500000;
 const GRAVITY_TARGET = 1.15;
@@ -64,18 +66,16 @@ let nextId = 1;
 let totalCost = 0;
 let activeMaterial = 'wood';
 
-let mode = 'build'; // 'build' | 'simulating' | 'won' | 'lost'
-let drag = null;    // {fromJoint, x, y}
+let mode = 'build'; // 'build' | 'simulating' | 'lost'
+let drag = null;
 let pressDownPos = null;
 
 let engine = null;
-let jointBodies = new Map();   // jointId -> body
-let beamPhys = new Map();      // beamId -> {body, cA, cB, broken}
-let vehicles = [];             // {body, state}
-let waveIndex = 0;
-let waveTimer = 0;
+let jointBodies = new Map();
+let beamPhys = new Map();
+let vehicles = [];
 let settleFrames = 0;
-let losingWaveLabel = '';
+let totalLoadKg = 0; // sum of all active vehicles on the bridge
 
 initJoints();
 resizeCanvasForDPR();
@@ -352,17 +352,24 @@ function simulationStep() {
     if (bp.broken) continue;
     const { deformation, dx, dy } = computeDeformation(bp);
 
-    if (justSettled) bp.baseline = deformation;
+    // During settling: keep updating baseline to the latest resting value
+    // so it accurately reflects the fully-settled state, not just frame 0.
+    if (settleFrames > 0) {
+      bp.baseline = deformation;
+    } else if (bp.baseline === undefined) {
+      bp.baseline = deformation; // safety fallback
+    }
 
     const effectiveLimit = bp.material.breakDistance * Math.max(1, bp.len / 150);
-    const added = Math.max(0, deformation - (bp.baseline ?? deformation));
-    bp.stress = Math.min(1.4, added / effectiveLimit);
+    const added = Math.max(0, deformation - bp.baseline);
+    // Scale stress so the color gradient is visible well before breaking:
+    // 0.3 of the limit already shows amber; 0.75 shows red.
+    bp.stress = Math.min(1.4, added / (effectiveLimit * 0.75));
 
-    if (settleFrames === 0 && bp.baseline !== undefined && added > effectiveLimit) {
+    if (settleFrames === 0 && added > effectiveLimit) {
       World.remove(engine.world, [bp.constraint, bp.skin]);
       bp.broken = true;
     } else {
-      // Keep the collidable "skin" tracking the current joint positions
       const mx = (bp.bodyA.position.x + bp.bodyB.position.x) / 2;
       const my = (bp.bodyA.position.y + bp.bodyB.position.y) / 2;
       Body.setPosition(bp.skin, { x: mx, y: my });
@@ -370,36 +377,29 @@ function simulationStep() {
     }
   }
 
-  // Wave logic
-  if (waveTimer > 0) {
-    waveTimer--;
-    if (waveTimer === 0) spawnWave(waveIndex);
-  } else {
-    stepVehicles();
-  }
+  // Vehicle stepping
+  stepVehicles();
 }
 
-function spawnWave(idx) {
-  const wave = WAVES[idx];
-  for (let i = 0; i < wave.count; i++) {
-    const startX = -40 - i * wave.gap;
-    const body = Bodies.rectangle(startX, GROUND_Y - wave.h / 2 - 6, wave.w, wave.h, {
-      chamfer: { radius: Math.min(10, wave.h * 0.4) }, friction: 0.9, frictionStatic: 1, restitution: 0.02,
-      collisionFilter: { category: CAT.VEHICLE, mask: CAT.GROUND | CAT.BEAM | CAT.VEHICLE },
-    });
-    Body.setMass(body, wave.mass);
-    Body.setInertia(body, Infinity); // keeps the car upright — no tumbling/rolling from collisions
-    Body.setVelocity(body, { x: wave.speed, y: 0 });
-    World.add(engine.world, body);
-    vehicles.push({
-      body, wave: idx, state: 'active', color: wave.color, speed: wave.speed,
-      w: wave.w, h: wave.h, wheelPhase: 0,
-    });
-  }
+function spawnVehicle(typeKey) {
+  if (mode !== 'simulating') return;
+  const type = VEHICLE_TYPES[typeKey];
+  const startX = -type.w / 2 - 10;
+  const body = Bodies.rectangle(startX, GROUND_Y - type.h / 2 - 6, type.w, type.h, {
+    chamfer: { radius: Math.min(10, type.h * 0.4) },
+    friction: 0.9, frictionStatic: 1, restitution: 0.02,
+    collisionFilter: { category: CAT.VEHICLE, mask: CAT.GROUND | CAT.BEAM | CAT.VEHICLE },
+  });
+  Body.setMass(body, type.mass);
+  Body.setInertia(body, Infinity);
+  Body.setVelocity(body, { x: type.speed, y: 0 });
+  World.add(engine.world, body);
+  vehicles.push({ body, typeKey, state: 'active', color: type.color, speed: type.speed, w: type.w, h: type.h, wheelPhase: 0, kg: type.kg });
+  refreshHUD();
 }
 
 function stepVehicles() {
-  let waveDone = true;
+  totalLoadKg = 0;
   for (const v of vehicles) {
     if (v.state !== 'active') continue;
     Body.setVelocity(v.body, { x: v.speed, y: v.body.velocity.y });
@@ -407,9 +407,13 @@ function stepVehicles() {
     Body.setAngularVelocity(v.body, 0);
     v.wheelPhase += v.speed * 0.35;
 
+    const px = v.body.position.x;
+    const onBridge = px > CHASM_LEFT && px < CHASM_RIGHT;
+    if (onBridge) totalLoadKg += v.kg;
+
     if (v.body.position.y > GROUND_Y + 260) {
       v.state = 'fallen';
-      triggerLoss(WAVES[v.wave].label);
+      triggerLoss(VEHICLE_TYPES[v.typeKey].label);
       return;
     }
     if (v.body.position.x > W + 60) {
@@ -417,24 +421,14 @@ function stepVehicles() {
       World.remove(engine.world, v.body);
     }
   }
-  for (const v of vehicles) {
-    if (v.wave === waveIndex && v.state === 'active') waveDone = false;
-  }
-  if (waveDone) {
-    if (waveIndex >= WAVES.length - 1) {
-      mode = 'won';
-      refreshHUD();
-    } else {
-      waveIndex++;
-      waveTimer = 110;
-    }
-  }
+  vehicles = vehicles.filter(v => v.state !== 'done');
+  refreshHUD();
 }
 
-function triggerLoss(label) {
+function triggerLoss(vehicleLabel) {
   mode = 'lost';
-  losingWaveLabel = label;
   refreshHUD();
+  showBanner('💥 Bridge failure!', `The bridge collapsed under a ${vehicleLabel}. Try reinforcing with steel or adding diagonal bracing.`);
 }
 
 // ============================================================
@@ -445,7 +439,7 @@ function resetGame() {
   jointBodies.clear();
   beamPhys.clear();
   vehicles = [];
-  waveIndex = 0;
+  totalLoadKg = 0;
   mode = 'build';
   initJoints();
   refreshHUD();
@@ -731,23 +725,22 @@ function refreshHUD() {
   el.budget.classList.toggle('over', remaining < 0);
 
   if (mode === 'build') {
-    el.wave.textContent = `Ready — ${WAVES.length} waves ahead`;
-    el.instructions.textContent = 'Drag from an anchor (amber bolt) or beam end to draw a new beam. A red dashed ring means that joint isn\'t actually snapped to the anchor — drag it away and redraw. Click a beam to delete it.';
+    el.wave.textContent = 'Ready to test';
+    el.instructions.textContent = 'Drag from an anchor (amber bolt) or beam end to draw a new beam. A red dashed ring means that joint isn\'t snapped to the anchor. Click a beam to delete it.';
   } else if (mode === 'simulating') {
-    el.wave.textContent = WAVES[waveIndex].label;
-    el.instructions.textContent = `Incoming: ${WAVES[waveIndex].kg} vehicles. Watch the stress colors — red means about to snap.`;
+    const liveLoad = totalLoadKg > 0
+      ? `Bridge load: ${totalLoadKg.toLocaleString()} kg on span`
+      : 'Span clear — spawn a vehicle below';
+    el.wave.textContent = liveLoad;
+    el.instructions.textContent = 'Beams turn amber → red as stress builds. Spawn heavier vehicles to find your bridge\'s limit.';
+  } else if (mode === 'lost') {
+    el.wave.textContent = 'Bridge failed';
   }
 
   el.testBtn.disabled = mode !== 'build';
   el.resetBtn.disabled = mode === 'build' && beams.length === 0 && totalCost === 0;
 
-  if (mode === 'won') {
-    showBanner('🏗️ Bridge held under every wave!', `Total cost: $${Math.round(totalCost).toLocaleString()} of your $${BUDGET.toLocaleString()} budget. Nicely engineered.`);
-  } else if (mode === 'lost') {
-    showBanner('💥 Bridge failure', `It gave way during ${losingWaveLabel}. Try reinforcing the weak span with steel or adding more support beams.`);
-  } else {
-    hideBanner();
-  }
+  if (mode !== 'lost') hideBanner();
 }
 
 function showBanner(title, body) {
@@ -771,6 +764,10 @@ document.querySelectorAll('.material-card').forEach(card => {
     card.classList.add('active');
     activeMaterial = card.dataset.material;
   });
+});
+
+document.querySelectorAll('.spawn-btn').forEach(btn => {
+  btn.addEventListener('click', () => spawnVehicle(btn.dataset.type));
 });
 
 refreshHUD();
