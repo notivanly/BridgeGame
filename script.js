@@ -17,9 +17,9 @@ const METERS_PER_PIXEL = 0.05;   // 20px = 1 meter (for cost/span readouts)
 const SNAP_RADIUS = 30;
 
 const FIXED_ANCHORS = [
-  { x: CHASM_LEFT,  y: GROUND_Y },
+  { x: CHASM_LEFT,  y: GROUND_Y + 5 },
   { x: CHASM_LEFT,  y: GROUND_Y + 60 },
-  { x: CHASM_RIGHT, y: GROUND_Y },
+  { x: CHASM_RIGHT, y: GROUND_Y + 5 },
   { x: CHASM_RIGHT, y: GROUND_Y + 60 },
 ];
 
@@ -378,7 +378,7 @@ function spawnWave(idx) {
   for (let i = 0; i < wave.count; i++) {
     const startX = -40 - i * wave.gap;
     const body = Bodies.rectangle(startX, GROUND_Y - wave.h / 2 - 6, wave.w, wave.h, {
-      chamfer: { radius: 4 }, friction: 0.9, frictionStatic: 1, restitution: 0.02,
+      chamfer: { radius: Math.min(10, wave.h * 0.4) }, friction: 0.9, frictionStatic: 1, restitution: 0.02,
       collisionFilter: { category: CAT.VEHICLE, mask: CAT.GROUND | CAT.BEAM | CAT.VEHICLE },
     });
     Body.setMass(body, wave.mass);
