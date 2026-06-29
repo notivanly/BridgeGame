@@ -257,77 +257,69 @@ function startSimulation() {
   });
   World.add(engine.world, [leftCliff, rightCliff]);
 
-  // Free joints get small physics bodies; fixed joints stay as world points
+  // Every joint becomes a real body now — fixed joints are static (immovable
+  // but still proper bodies), free joints are dynamic. Beams will be pure
+  // distance constraints between these, which is far more stable for
+  // arbitrary topologies (including closed loops/triangles) than chaining
+  // independently-rotating rigid rectangles together.
+  const jointMass = new Map();
+  for (const j of joints) jointMass.set(j.id, 2.2); // small base mass
+  for (const b of beams) {
+    const material = MATERIALS[b.material];
+    const beamMass = b.length * material.thickness * material.density;
+    jointMass.set(b.aId, (jointMass.get(b.aId) || 2.2) + beamMass / 2);
+    jointMass.set(b.bId, (jointMass.get(b.bId) || 2.2) + beamMass / 2);
+  }
+
   for (const j of joints) {
-    if (j.fixed) continue;
     const body = Bodies.circle(j.x, j.y, 6, {
-      density: 0.18,
+      isStatic: !!j.fixed,
       collisionFilter: { category: CAT.JOINT, mask: 0 },
       friction: 0,
       frictionAir: 0.12,
     });
+    if (!j.fixed) Body.setMass(body, jointMass.get(j.id));
     jointBodies.set(j.id, body);
     World.add(engine.world, body);
   }
 
-  // Beams as rectangle bodies pinned to their joints
+  // Beams: a pure distance constraint carries the structural load; a thin
+  // static "skin" rectangle is repositioned every frame to visually and
+  // physically track the line between the two joints (for vehicles to
+  // collide with) — it is NOT part of the constraint network, so it can't
+  // introduce any of the instability rigid-rectangle links were causing.
   for (const b of beams) {
     const a = jointById(b.aId), c = jointById(b.bId);
     const material = MATERIALS[b.material];
-    const mx = (a.x + c.x) / 2, my = (a.y + c.y) / 2;
-    const angle = Math.atan2(c.y - a.y, c.x - a.x);
+    const bodyA = jointBodies.get(a.id);
+    const bodyB = jointBodies.get(c.id);
     const len = b.length;
 
-    const body = Bodies.rectangle(mx, my, len, material.thickness, {
-      angle, density: material.density, friction: 0.9, frictionStatic: 1, restitution: 0,
-      frictionAir: 0.04,
+    const constraint = Constraint.create({
+      bodyA, bodyB, length: len, stiffness: 0.95, damping: 0.35,
+    });
+    World.add(engine.world, constraint);
+
+    const mx = (a.x + c.x) / 2, my = (a.y + c.y) / 2;
+    const angle = Math.atan2(c.y - a.y, c.x - a.x);
+    const skin = Bodies.rectangle(mx, my, len, material.thickness, {
+      isStatic: true, angle,
       collisionFilter: { category: CAT.BEAM, mask: CAT.GROUND | CAT.VEHICLE },
     });
-    World.add(engine.world, body);
+    World.add(engine.world, skin);
 
-    const cA = makeEndConstraint(a, body, -len / 2);
-    const cB = makeEndConstraint(c, body, len / 2);
-    World.add(engine.world, [cA, cB]);
-
-    beamPhys.set(b.id, { body, cA, cB, broken: false, material, len, baseline: undefined });
+    beamPhys.set(b.id, { constraint, skin, bodyA, bodyB, broken: false, material, len, baseline: undefined });
   }
 
   mode = 'simulating';
   refreshHUD();
 }
 
-function makeEndConstraint(joint, beamBody, localX) {
-  const opts = {
-    bodyB: beamBody,
-    pointB: { x: localX, y: 0 },
-    length: 0,
-    stiffness: 0.9,
-    damping: 0.35,
-  };
-  if (joint.fixed) {
-    opts.pointA = { x: joint.x, y: joint.y };
-  } else {
-    opts.bodyA = jointBodies.get(joint.id);
-    opts.pointA = { x: 0, y: 0 };
-  }
-  return Constraint.create(opts);
-}
-
-function worldPointOf(constraint, side) {
-  const body = side === 'A' ? constraint.bodyA : constraint.bodyB;
-  const point = side === 'A' ? constraint.pointA : constraint.pointB;
-  if (!body) return point;
-  return Vector.add(body.position, Vector.rotate(point, body.angle));
-}
-
-function computeStretch(bp) {
-  const pA = worldPointOf(bp.cA, 'A');
-  const pB = worldPointOf(bp.cA, 'B');
-  const stretchA = dist(pA.x, pA.y, pB.x, pB.y);
-  const pA2 = worldPointOf(bp.cB, 'A');
-  const pB2 = worldPointOf(bp.cB, 'B');
-  const stretchB = dist(pA2.x, pA2.y, pB2.x, pB2.y);
-  return Math.max(stretchA, stretchB);
+function computeDeformation(bp) {
+  const dx = bp.bodyB.position.x - bp.bodyA.position.x;
+  const dy = bp.bodyB.position.y - bp.bodyA.position.y;
+  const currentDist = Math.hypot(dx, dy);
+  return { deformation: Math.abs(currentDist - bp.len), dx, dy };
 }
 
 // ============================================================
@@ -346,23 +338,29 @@ function simulationStep() {
   if (settleFrames > 0) settleFrames--;
   const justSettled = wasSettling && settleFrames === 0;
 
-  // Check every beam for excess *added* stretch (above its own settled
+  // Check every beam for excess *added* deformation (above its own settled
   // resting tension) -> break. A complex truss naturally settles into some
   // resting tension just from its own weight; that's normal, not failure.
   // We only care about load added on top of that (e.g. a vehicle's weight).
   for (const [beamId, bp] of beamPhys) {
     if (bp.broken) continue;
-    const stretch = computeStretch(bp);
+    const { deformation, dx, dy } = computeDeformation(bp);
 
-    if (justSettled) bp.baseline = stretch;
+    if (justSettled) bp.baseline = deformation;
 
     const effectiveLimit = bp.material.breakDistance * Math.max(1, bp.len / 150);
-    const addedStretch = Math.max(0, stretch - (bp.baseline ?? stretch));
-    bp.stress = Math.min(1.4, addedStretch / effectiveLimit);
+    const added = Math.max(0, deformation - (bp.baseline ?? deformation));
+    bp.stress = Math.min(1.4, added / effectiveLimit);
 
-    if (settleFrames === 0 && bp.baseline !== undefined && addedStretch > effectiveLimit) {
-      World.remove(engine.world, [bp.body, bp.cA, bp.cB]);
+    if (settleFrames === 0 && bp.baseline !== undefined && added > effectiveLimit) {
+      World.remove(engine.world, [bp.constraint, bp.skin]);
       bp.broken = true;
+    } else {
+      // Keep the collidable "skin" tracking the current joint positions
+      const mx = (bp.bodyA.position.x + bp.bodyB.position.x) / 2;
+      const my = (bp.bodyA.position.y + bp.bodyB.position.y) / 2;
+      Body.setPosition(bp.skin, { x: mx, y: my });
+      Body.setAngle(bp.skin, Math.atan2(dy, dx));
     }
   }
 
@@ -594,10 +592,10 @@ function drawDragLine() {
 function drawBeamsPhysics() {
   for (const [, bp] of beamPhys) {
     if (bp.broken) continue;
-    const { body, material, stress = 0, len } = bp;
+    const { skin, material, stress = 0, len } = bp;
     ctx.save();
-    ctx.translate(body.position.x, body.position.y);
-    ctx.rotate(body.angle);
+    ctx.translate(skin.position.x, skin.position.y);
+    ctx.rotate(skin.angle);
     const half = len / 2;
     ctx.fillStyle = stressColor(stress, material.color);
     ctx.fillRect(-half, -material.thickness / 2, half * 2, material.thickness);
