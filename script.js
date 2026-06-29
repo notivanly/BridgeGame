@@ -228,7 +228,11 @@ function startSimulation() {
     flashMessage('Build at least one beam across the gap first.');
     return;
   }
-  engine = Engine.create();
+  engine = Engine.create({
+    positionIterations: 14,
+    velocityIterations: 10,
+    constraintIterations: 8,
+  });
   engine.gravity.y = 1.15;
 
   jointBodies.clear();
@@ -236,7 +240,7 @@ function startSimulation() {
   vehicles = [];
   waveIndex = 0;
   waveTimer = 90; // small delay before first wave rolls in
-  settleFrames = 35; // grace period: let the structure settle before checking for breaks
+  settleFrames = 55; // grace period: let the structure settle before checking for breaks
 
   // Static ground for the two cliffs (collides with vehicles only)
   // Left cliff extends well off-screen so staggered vehicle spawn points
@@ -255,7 +259,7 @@ function startSimulation() {
   for (const j of joints) {
     if (j.fixed) continue;
     const body = Bodies.circle(j.x, j.y, 6, {
-      density: 0.002,
+      density: 0.05,
       collisionFilter: { category: CAT.JOINT, mask: 0 },
       friction: 0,
     });
