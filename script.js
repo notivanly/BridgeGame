@@ -25,17 +25,17 @@ const FIXED_ANCHORS = [
 const MATERIALS = {
   wood: {
     key:'wood', name:'Wood', color:'#c89a64', dark:'#8a6239',
-    costPerMeter:14, thickness:8, maxStrain:0.012,
+    costPerMeter:14, thickness:8, sagBreak:6,
     strength:2, weight:1, note:'Cheap & light. Snaps under heavy loads.'
   },
   steel: {
     key:'steel', name:'Steel', color:'#a9bdce', dark:'#5d6e7c',
-    costPerMeter:135, thickness:7, maxStrain:0.08,
+    costPerMeter:135, thickness:7, sagBreak:45,
     strength:5, weight:3, note:'Strongest by far. Expensive and heavy.'
   },
   concrete: {
     key:'concrete', name:'Concrete', color:'#b3b1a6', dark:'#76746c',
-    costPerMeter:68, thickness:11, maxStrain:0.032,
+    costPerMeter:68, thickness:11, sagBreak:18,
     strength:3, weight:5, note:'Decent strength, but very heavy on long spans.'
   },
 };
@@ -259,32 +259,47 @@ function simulationStep() {
     }
   }
 
-  // 3. Satisfy distance constraints (multiple relaxation passes)
+  // 3. Satisfy distance constraints
   for (let iter = 0; iter < ITERATIONS; iter++) {
     for (const sb of simBeams) {
       if (sb.broken) continue;
       const sja = simJoints[sb.ai], sjb = simJoints[sb.bi];
       const dx = sjb.x - sja.x, dy = sjb.y - sja.y;
       const currentLen = Math.hypot(dx, dy);
-      if (currentLen === 0) continue;
-      const strain = (currentLen - sb.restLen) / sb.restLen;
-      const correction = strain / ((!sja.fixed ? 1 : 0) + (!sjb.fixed ? 1 : 0) || 1);
-      if (!sja.fixed) { sja.x += dx/currentLen * correction * sb.restLen; sja.y += dy/currentLen * correction * sb.restLen; }
-      if (!sjb.fixed) { sjb.x -= dx/currentLen * correction * sb.restLen; sjb.y -= dy/currentLen * correction * sb.restLen; }
+      if (currentLen < 0.001) continue;
+      const diff = (currentLen - sb.restLen) / currentLen * 0.5;
+      if (!sja.fixed && !sjb.fixed) {
+        sja.x += dx * diff; sja.y += dy * diff;
+        sjb.x -= dx * diff; sjb.y -= dy * diff;
+      } else if (!sja.fixed) {
+        sja.x += dx * diff * 2; sja.y += dy * diff * 2;
+      } else if (!sjb.fixed) {
+        sjb.x -= dx * diff * 2; sjb.y -= dy * diff * 2;
+      }
     }
   }
 
-  // 4. Compute stress & break beams
+  // 4. Break detection: measure how far each FREE joint has dropped below
+  // its original Y (vertical sag). This is far more sensitive than measuring
+  // tiny length changes in near-horizontal beams — those barely change length
+  // even when the midpoint sags significantly.
   if (settleFrames > 0) {
+    // During settling, record each free joint's resting Y as its baseline
+    for (const sj of simJoints) {
+      if (!sj.fixed) sj.baseY = sj.y;
+    }
     settleFrames--;
   } else {
     for (const sb of simBeams) {
       if (sb.broken) continue;
       const sja = simJoints[sb.ai], sjb = simJoints[sb.bi];
-      const currentLen = Math.hypot(sjb.x - sja.x, sjb.y - sja.y);
-      const strain = Math.abs(currentLen - sb.restLen) / sb.restLen;
-      sb.stress = Math.min(1.4, strain / (sb.material.maxStrain * 0.8));
-      if (strain > sb.material.maxStrain) {
+      // Max sag of this beam's two endpoints below their settled baselines
+      const sagA = sja.fixed ? 0 : Math.max(0, sja.y - (sja.baseY ?? sja.y));
+      const sagB = sjb.fixed ? 0 : Math.max(0, sjb.y - (sjb.baseY ?? sjb.y));
+      const sag = Math.max(sagA, sagB);
+      // Break limit in pixels of sag (tuned per material)
+      sb.stress = Math.min(1.4, sag / (sb.material.sagBreak * 0.7));
+      if (sag > sb.material.sagBreak) {
         sb.broken = true;
         const midX = (sja.x + sjb.x) / 2;
         if (midX > CHASM_LEFT && midX < CHASM_RIGHT && mode === 'simulating') {
