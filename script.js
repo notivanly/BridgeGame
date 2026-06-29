@@ -285,7 +285,7 @@ function startSimulation() {
     const cB = makeEndConstraint(c, body, len / 2);
     World.add(engine.world, [cA, cB]);
 
-    beamPhys.set(b.id, { body, cA, cB, broken: false, material, len });
+    beamPhys.set(b.id, { body, cA, cB, broken: false, material, len, baseline: undefined });
   }
 
   mode = 'simulating';
@@ -297,8 +297,8 @@ function makeEndConstraint(joint, beamBody, localX) {
     bodyB: beamBody,
     pointB: { x: localX, y: 0 },
     length: 0,
-    stiffness: 1,
-    damping: 0.4,
+    stiffness: 0.9,
+    damping: 0.35,
   };
   if (joint.fixed) {
     opts.pointA = { x: joint.x, y: joint.y };
@@ -316,32 +316,45 @@ function worldPointOf(constraint, side) {
   return Vector.add(body.position, Vector.rotate(point, body.angle));
 }
 
+function computeStretch(bp) {
+  const pA = worldPointOf(bp.cA, 'A');
+  const pB = worldPointOf(bp.cA, 'B');
+  const stretchA = dist(pA.x, pA.y, pB.x, pB.y);
+  const pA2 = worldPointOf(bp.cB, 'A');
+  const pB2 = worldPointOf(bp.cB, 'B');
+  const stretchB = dist(pA2.x, pA2.y, pB2.x, pB2.y);
+  return Math.max(stretchA, stretchB);
+}
+
 // ============================================================
 // Simulation tick
 // ============================================================
 function simulationStep() {
   Engine.update(engine, 1000 / 60);
 
-  // Check every beam for excess stretch -> break
+  const wasSettling = settleFrames > 0;
+  if (settleFrames > 0) settleFrames--;
+  const justSettled = wasSettling && settleFrames === 0;
+
+  // Check every beam for excess *added* stretch (above its own settled
+  // resting tension) -> break. A complex truss naturally settles into some
+  // resting tension just from its own weight; that's normal, not failure.
+  // We only care about load added on top of that (e.g. a vehicle's weight).
   for (const [beamId, bp] of beamPhys) {
     if (bp.broken) continue;
-    const pA = worldPointOf(bp.cA, 'A');
-    const pB = worldPointOf(bp.cA, 'B');
-    const stretchA = dist(pA.x, pA.y, pB.x, pB.y);
-    const pA2 = worldPointOf(bp.cB, 'A');
-    const pB2 = worldPointOf(bp.cB, 'B');
-    const stretchB = dist(pA2.x, pA2.y, pB2.x, pB2.y);
-    const stretch = Math.max(stretchA, stretchB);
-    const effectiveLimit = bp.material.breakDistance * Math.max(1, bp.len / 150);
-    bp.stress = Math.min(1.4, stretch / effectiveLimit);
+    const stretch = computeStretch(bp);
 
-    if (settleFrames === 0 && stretch > effectiveLimit) {
+    if (justSettled) bp.baseline = stretch;
+
+    const effectiveLimit = bp.material.breakDistance * Math.max(1, bp.len / 150);
+    const addedStretch = Math.max(0, stretch - (bp.baseline ?? stretch));
+    bp.stress = Math.min(1.4, addedStretch / effectiveLimit);
+
+    if (settleFrames === 0 && bp.baseline !== undefined && addedStretch > effectiveLimit) {
       World.remove(engine.world, [bp.body, bp.cA, bp.cB]);
       bp.broken = true;
     }
   }
-
-  if (settleFrames > 0) settleFrames--;
 
   // Wave logic
   if (waveTimer > 0) {
