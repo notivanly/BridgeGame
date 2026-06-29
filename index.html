@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Load Limit — Bridge Engineering Lab</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="app-shell">
+
+  <header class="hud-top">
+    <div>
+      <h1 class="game-title">LOAD <span>LIMIT</span></h1>
+      <div class="game-subtitle">Bridge Engineering Lab</div>
+    </div>
+
+    <div class="hud-stats">
+      <div class="hud-stat">
+        <div class="hud-stat-label">Budget remaining</div>
+        <div class="hud-stat-value" id="hud-budget">$500,000</div>
+      </div>
+      <div class="hud-stat">
+        <div class="hud-stat-label">Spent so far</div>
+        <div class="hud-stat-value" id="hud-spent">$0</div>
+      </div>
+      <div class="hud-stat">
+        <div class="hud-stat-label">Status</div>
+        <div class="hud-stat-value" id="hud-wave">Ready</div>
+      </div>
+    </div>
+
+    <div class="hud-actions">
+      <button class="btn-primary" id="btn-test">Test Bridge</button>
+      <button class="btn-secondary" id="btn-reset">Reset</button>
+    </div>
+  </header>
+
+  <main class="game-area">
+    <aside class="toolbar">
+      <h3>Materials</h3>
+
+      <button class="material-card active" data-material="wood">
+        <div><span class="material-swatch" style="background:#c89a64"></span><span class="material-name">Wood</span></div>
+        <div class="material-cost">$14 / meter</div>
+        <div class="material-bar">
+          <span class="fill"></span><span class="fill"></span><span></span><span></span><span></span>
+        </div>
+        <div class="material-note">Cheap & light. Snaps under heavy loads.</div>
+      </button>
+
+      <button class="material-card" data-material="steel">
+        <div><span class="material-swatch" style="background:#a9bdce"></span><span class="material-name">Steel</span></div>
+        <div class="material-cost">$135 / meter</div>
+        <div class="material-bar">
+          <span class="fill"></span><span class="fill"></span><span class="fill"></span><span class="fill"></span><span class="fill"></span>
+        </div>
+        <div class="material-note">Strongest by far. Expensive and heavy.</div>
+      </button>
+
+      <button class="material-card" data-material="concrete">
+        <div><span class="material-swatch" style="background:#b3b1a6"></span><span class="material-name">Concrete</span></div>
+        <div class="material-cost">$68 / meter</div>
+        <div class="material-bar">
+          <span class="fill"></span><span class="fill"></span><span class="fill"></span><span></span><span></span>
+        </div>
+        <div class="material-note">Decent strength, but very heavy on long spans.</div>
+      </button>
+    </aside>
+
+    <div class="stage-wrap">
+      <canvas id="stage" width="1000" height="560"></canvas>
+      <div class="banner" id="banner">
+        <div class="banner-card">
+          <h2 id="banner-title">Result</h2>
+          <p id="banner-body">—</p>
+          <button class="btn-primary" id="banner-btn">Rebuild</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="hud-bottom">
+    <div class="legend">
+      <span>Beam stress</span>
+      <div class="legend-bar"></div>
+      <span>low → snapping</span>
+    </div>
+    <div id="instructions">Drag from an anchor point to draw your first beam.</div>
+  </footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
