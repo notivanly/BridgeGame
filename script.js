@@ -297,8 +297,8 @@ function makeEndConstraint(joint, beamBody, localX) {
     bodyB: beamBody,
     pointB: { x: localX, y: 0 },
     length: 0,
-    stiffness: 0.98,
-    damping: 0.3,
+    stiffness: 1,
+    damping: 0.4,
   };
   if (joint.fixed) {
     opts.pointA = { x: joint.x, y: joint.y };
@@ -332,9 +332,10 @@ function simulationStep() {
     const pB2 = worldPointOf(bp.cB, 'B');
     const stretchB = dist(pA2.x, pA2.y, pB2.x, pB2.y);
     const stretch = Math.max(stretchA, stretchB);
-    bp.stress = Math.min(1.4, stretch / bp.material.breakDistance);
+    const effectiveLimit = bp.material.breakDistance * Math.max(1, bp.len / 150);
+    bp.stress = Math.min(1.4, stretch / effectiveLimit);
 
-    if (settleFrames === 0 && stretch > bp.material.breakDistance) {
+    if (settleFrames === 0 && stretch > effectiveLimit) {
       World.remove(engine.world, [bp.body, bp.cA, bp.cB]);
       bp.broken = true;
     }
