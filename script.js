@@ -51,6 +51,8 @@ const WAVES = [
 ];
 
 const BUDGET = 500000;
+const GRAVITY_TARGET = 1.15;
+const SETTLE_TOTAL = 75;
 
 // ---------- Collision categories ----------
 const CAT = { GROUND: 0x0001, BEAM: 0x0002, VEHICLE: 0x0004, JOINT: 0x0008 };
@@ -233,14 +235,14 @@ function startSimulation() {
     velocityIterations: 10,
     constraintIterations: 8,
   });
-  engine.gravity.y = 1.15;
+  engine.gravity.y = 0; // ramped in gradually in simulationStep — see GRAVITY_TARGET
 
   jointBodies.clear();
   beamPhys.clear();
   vehicles = [];
   waveIndex = 0;
   waveTimer = 90; // small delay before first wave rolls in
-  settleFrames = 75; // grace period: let the structure settle before checking for breaks
+  settleFrames = SETTLE_TOTAL; // grace period: let the structure settle before checking for breaks
 
   // Static ground for the two cliffs (collides with vehicles only)
   // Left cliff extends well off-screen so staggered vehicle spawn points
@@ -262,6 +264,7 @@ function startSimulation() {
       density: 0.18,
       collisionFilter: { category: CAT.JOINT, mask: 0 },
       friction: 0,
+      frictionAir: 0.12,
     });
     jointBodies.set(j.id, body);
     World.add(engine.world, body);
@@ -277,6 +280,7 @@ function startSimulation() {
 
     const body = Bodies.rectangle(mx, my, len, material.thickness, {
       angle, density: material.density, friction: 0.9, frictionStatic: 1, restitution: 0,
+      frictionAir: 0.04,
       collisionFilter: { category: CAT.BEAM, mask: CAT.GROUND | CAT.VEHICLE },
     });
     World.add(engine.world, body);
@@ -330,6 +334,12 @@ function computeStretch(bp) {
 // Simulation tick
 // ============================================================
 function simulationStep() {
+  // Ease gravity in over the settle window so closed loops (boxes, triangles)
+  // don't get hit with full weight in one instant and pop into a warped shape.
+  const settleFrac = 1 - settleFrames / SETTLE_TOTAL; // 0 -> 1 over the settle window
+  const eased = settleFrac * settleFrac * (3 - 2 * settleFrac); // smoothstep
+  engine.gravity.y = GRAVITY_TARGET * Math.min(1, Math.max(0, eased));
+
   Engine.update(engine, 1000 / 60);
 
   const wasSettling = settleFrames > 0;
