@@ -100,19 +100,7 @@ canvas.addEventListener('pointerdown', e => {
   if (mode !== 'build') return;
   const p = canvasPos(e);
   pressDownPos = p;
-  // Priority: snap to existing joint > split a beam midpoint > free space
-  const nearJoint = findNearestJoint(p.x, p.y, SNAP_RADIUS);
-  if (nearJoint) {
-    drag = { from: nearJoint, x: p.x, y: p.y };
-  } else {
-    const nearBeam = findBeamNear(p.x, p.y, 8);
-    if (nearBeam) {
-      // Start drag from a split-point on this beam
-      drag = { from: null, splitFrom: nearBeam, x: p.x, y: p.y };
-    } else {
-      drag = { from: null, x: p.x, y: p.y };
-    }
-  }
+  drag = { from: findNearestJoint(p.x, p.y, SNAP_RADIUS), x: p.x, y: p.y };
 });
 
 canvas.addEventListener('pointermove', e => {
@@ -127,33 +115,26 @@ canvas.addEventListener('pointerup', e => {
   const moved = dist(p.x, p.y, pressDownPos.x, pressDownPos.y) > 6;
 
   if (!moved) {
-    // Click with no drag: delete beam under cursor
-    const hit = findBeamNear(p.x, p.y, 7);
-    if (hit) removeBeam(hit.id);
+    if (activeMaterial === 'screw') {
+      // Screw tool: click on a beam to place a junction point, splitting it
+      const hit = findBeamNear(p.x, p.y, 10);
+      if (hit) {
+        splitBeamAt(hit, p.x, p.y);
+      } else {
+        flashMessage('Click directly on a beam to place a junction screw.');
+      }
+    } else {
+      // Normal tool: click to delete beam under cursor
+      const hit = findBeamNear(p.x, p.y, 7);
+      if (hit) removeBeam(hit.id);
+    }
     drag = null; return;
   }
 
-  // Resolve the FROM joint (splitting a beam if needed)
-  let fromJoint = drag.from;
-  if (!fromJoint) {
-    if (drag.splitFrom) {
-      fromJoint = splitBeamAt(drag.splitFrom, pressDownPos.x, pressDownPos.y);
-    } else {
-      fromJoint = addJoint(pressDownPos.x, pressDownPos.y, false);
-    }
-  }
+  if (activeMaterial === 'screw') { drag = null; return; } // screw only places, doesn't draw
 
-  // Resolve the TO joint — snap to existing joint, split a target beam, or free space
-  let toJoint = findNearestJoint(p.x, p.y, SNAP_RADIUS);
-  if (!toJoint) {
-    const targetBeam = findBeamNear(p.x, p.y, 10);
-    if (targetBeam) {
-      toJoint = splitBeamAt(targetBeam, p.x, p.y);
-    } else {
-      toJoint = addJoint(p.x, p.y, false);
-    }
-  }
-
+  const fromJoint = drag.from || addJoint(pressDownPos.x, pressDownPos.y, false);
+  const toJoint   = findNearestJoint(p.x, p.y, SNAP_RADIUS) || addJoint(p.x, p.y, false);
   if (fromJoint.id !== toJoint.id && !beamExists(fromJoint.id, toJoint.id))
     addBeam(fromJoint, toJoint, activeMaterial);
   drag = null;
@@ -628,7 +609,13 @@ function refreshHUD() {
   el.budget.classList.toggle('over', remaining < 0);
   if (mode === 'build') {
     el.wave.textContent = 'Ready to test';
-    el.instructions.textContent = "Drag from an amber anchor to draw a beam. Click a beam to delete it. Red dashed ring = joint not snapped to anchor.";
+    if (activeMaterial === 'screw') {
+      el.instructions.textContent = 'Click anywhere on a beam to place a junction point. Then switch to a material and draw from it.';
+      canvas.style.cursor = 'crosshair';
+    } else {
+      el.instructions.textContent = 'Drag from a joint or anchor to draw a beam. Click a beam to delete it. Use the Screw tool to add junction points on existing beams.';
+      canvas.style.cursor = 'crosshair';
+    }
   } else if (mode === 'simulating') {
     el.wave.textContent = totalLoadKg > 0 ? `Bridge load: ${totalLoadKg.toLocaleString()} kg on span` : 'Span clear — spawn a vehicle below';
     el.instructions.textContent = 'Beams turn amber → red as stress builds. Spawn heavier vehicles to find your limit.';
@@ -660,6 +647,7 @@ document.querySelectorAll('.material-card').forEach(card => {
     document.querySelectorAll('.material-card').forEach(c => c.classList.remove('active'));
     card.classList.add('active');
     activeMaterial = card.dataset.material;
+    refreshHUD();
   });
 });
 
