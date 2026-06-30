@@ -361,20 +361,69 @@ function spawnVehicle(typeKey) {
   const spawnOccupied = vehicles.some(v => v.x < 80);
   if (spawnOccupied) { flashMessage('Entry busy — try again in a moment.'); return; }
   const type = VEHICLE_TYPES[typeKey];
-  vehicles.push({ x: -type.w/2, y: GROUND_Y - type.h/2 - 3, typeKey, wheelPhase: 0, done: false });
+  vehicles.push({ x: -type.w/2, y: GROUND_Y, vy: 0, typeKey, wheelPhase: 0, done: false });
   refreshHUD();
+}
+
+function getBridgeSurfaceY(vx) {
+  // Find the highest (lowest Y value) beam surface directly under vx
+  let surfaceY = null;
+  for (const sb of simBeams) {
+    if (sb.broken) continue;
+    const sja = simJoints[sb.ai], sjb = simJoints[sb.bi];
+    const minX = Math.min(sja.x, sjb.x), maxX = Math.max(sja.x, sjb.x);
+    if (vx < minX || vx > maxX) continue;
+    // Interpolate Y at vx along this beam
+    const t = (vx - sja.x) / (sjb.x - sja.x);
+    const beamY = sja.y + t * (sjb.y - sja.y);
+    // Only count beams that are near road level (not vertical bracing far below)
+    if (beamY > GROUND_Y - 80 && beamY < GROUND_Y + 80) {
+      if (surfaceY === null || beamY < surfaceY) surfaceY = beamY;
+    }
+  }
+  return surfaceY;
 }
 
 function stepVehicles() {
   totalLoadKg = 0;
+  const VEHICLE_GRAVITY = 0.6;
   for (const v of vehicles) {
     const type = VEHICLE_TYPES[v.typeKey];
     v.x += type.speed;
     v.wheelPhase += type.speed * 0.35;
-    if (v.x > CHASM_LEFT && v.x < CHASM_RIGHT) totalLoadKg += type.kg;
-    if (v.x > W + 80) v.done = true;
+
+    const onLeftCliff  = v.x <= CHASM_LEFT;
+    const onRightCliff = v.x >= CHASM_RIGHT;
+
+    if (onLeftCliff || onRightCliff) {
+      // On solid ground — snap to road level
+      v.y  = GROUND_Y;
+      v.vy = 0;
+    } else {
+      // Over the chasm — check if bridge is beneath
+      const surfaceY = getBridgeSurfaceY(v.x);
+      if (surfaceY !== null && v.y >= surfaceY) {
+        // Resting on bridge surface
+        v.y  = surfaceY;
+        v.vy = 0;
+        totalLoadKg += type.kg;
+      } else {
+        // Falling
+        v.vy += VEHICLE_GRAVITY;
+        v.y  += v.vy;
+      }
+    }
+
+    if (v.y > H + 60) {
+      v.done = true;
+      if (v.x > CHASM_LEFT && v.x < CHASM_RIGHT && mode === 'simulating') {
+        triggerLoss('bridge collapse — vehicle fell');
+      }
+    }
+    if (v.x > W + 80) v.done = true;  // crossed successfully
   }
   vehicles = vehicles.filter(v => !v.done);
+  refreshHUD();
 }
 
 function triggerLoss(materialName) {
@@ -563,7 +612,7 @@ function drawVehicles() {
   for (const v of vehicles) {
     const type = VEHICLE_TYPES[v.typeKey];
     const w = type.w, h = type.h;
-    const vx = v.x, vy = GROUND_Y - h/2 - 3;
+    const vx = v.x, vy = v.y - h / 2 - 3;  // v.y is road surface, draw body above it
     ctx.save(); ctx.translate(vx, vy);
     // Wheels
     const wheelR = Math.max(5, h*0.32);
