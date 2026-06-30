@@ -100,6 +100,20 @@ canvas.addEventListener('pointerdown', e => {
   if (mode !== 'build') return;
   const p = canvasPos(e);
   pressDownPos = p;
+
+  // Screw tool: place junction immediately on click, no drag needed
+  if (activeMaterial === 'screw') {
+    const hit = findBeamNear(p.x, p.y, 20); // generous tolerance
+    if (hit) {
+      const j = splitBeamAt(hit, p.x, p.y);
+      j.isScrew = true;
+    } else {
+      flashMessage('Click directly on a beam line to place a junction.');
+    }
+    drag = null;
+    return;
+  }
+
   drag = { from: findNearestJoint(p.x, p.y, SNAP_RADIUS), x: p.x, y: p.y };
 });
 
@@ -115,19 +129,9 @@ canvas.addEventListener('pointerup', e => {
   const moved = dist(p.x, p.y, pressDownPos.x, pressDownPos.y) > 6;
 
   if (!moved) {
-    if (activeMaterial === 'screw') {
-      // Screw tool: click on a beam to place a junction point, splitting it
-      const hit = findBeamNear(p.x, p.y, 10);
-      if (hit) {
-        splitBeamAt(hit, p.x, p.y);
-      } else {
-        flashMessage('Click directly on a beam to place a junction screw.');
-      }
-    } else {
-      // Normal tool: click to delete beam under cursor
-      const hit = findBeamNear(p.x, p.y, 7);
-      if (hit) removeBeam(hit.id);
-    }
+    // Normal click: delete beam under cursor
+    const hit = findBeamNear(p.x, p.y, 7);
+    if (hit) removeBeam(hit.id);
     drag = null; return;
   }
 
@@ -465,9 +469,17 @@ function drawJointsBuildMode() {
       ctx.beginPath(); ctx.strokeStyle = '#d4483a'; ctx.lineWidth = 2;
       ctx.setLineDash([3,3]); ctx.arc(j.x,j.y,14,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
     }
-    ctx.beginPath(); ctx.fillStyle = '#f2ecdd';
-    ctx.arc(j.x, j.y, 5, 0, Math.PI*2); ctx.fill();
-    ctx.lineWidth = 1.5; ctx.strokeStyle = '#16212c'; ctx.stroke();
+    // Screw-placed joints (those that split a beam) are drawn amber and larger
+    const isScrew = j.isScrew;
+    ctx.beginPath();
+    ctx.fillStyle = isScrew ? '#e8a33d' : '#f2ecdd';
+    ctx.arc(j.x, j.y, isScrew ? 7 : 5, 0, Math.PI*2); ctx.fill();
+    ctx.lineWidth = isScrew ? 2 : 1.5;
+    ctx.strokeStyle = '#16212c'; ctx.stroke();
+    if (isScrew) {
+      ctx.beginPath(); ctx.strokeStyle = 'rgba(232,163,61,0.35)'; ctx.lineWidth = 1;
+      ctx.arc(j.x, j.y, 14, 0, Math.PI*2); ctx.stroke();
+    }
   }
 }
 
