@@ -100,33 +100,88 @@ canvas.addEventListener('pointerdown', e => {
   if (mode !== 'build') return;
   const p = canvasPos(e);
   pressDownPos = p;
-  drag = { from: findNearestJoint(p.x, p.y, SNAP_RADIUS), x: p.x, y: p.y };
+  // Priority: snap to existing joint > split a beam midpoint > free space
+  const nearJoint = findNearestJoint(p.x, p.y, SNAP_RADIUS);
+  if (nearJoint) {
+    drag = { from: nearJoint, x: p.x, y: p.y };
+  } else {
+    const nearBeam = findBeamNear(p.x, p.y, 8);
+    if (nearBeam) {
+      // Start drag from a split-point on this beam
+      drag = { from: null, splitFrom: nearBeam, x: p.x, y: p.y };
+    } else {
+      drag = { from: null, x: p.x, y: p.y };
+    }
+  }
 });
+
 canvas.addEventListener('pointermove', e => {
   if (mode !== 'build' || !drag) return;
   const p = canvasPos(e);
   drag.x = p.x; drag.y = p.y;
 });
+
 canvas.addEventListener('pointerup', e => {
   if (mode !== 'build' || !drag) { drag = null; return; }
   const p = canvasPos(e);
   const moved = dist(p.x, p.y, pressDownPos.x, pressDownPos.y) > 6;
+
   if (!moved) {
+    // Click with no drag: delete beam under cursor
     const hit = findBeamNear(p.x, p.y, 7);
     if (hit) removeBeam(hit.id);
     drag = null; return;
   }
-  const fromJoint = drag.from || addJoint(pressDownPos.x, pressDownPos.y, false);
-  const toJoint   = findNearestJoint(p.x, p.y, SNAP_RADIUS) || addJoint(p.x, p.y, false);
+
+  // Resolve the FROM joint (splitting a beam if needed)
+  let fromJoint = drag.from;
+  if (!fromJoint) {
+    if (drag.splitFrom) {
+      fromJoint = splitBeamAt(drag.splitFrom, pressDownPos.x, pressDownPos.y);
+    } else {
+      fromJoint = addJoint(pressDownPos.x, pressDownPos.y, false);
+    }
+  }
+
+  // Resolve the TO joint — snap to existing joint, split a target beam, or free space
+  let toJoint = findNearestJoint(p.x, p.y, SNAP_RADIUS);
+  if (!toJoint) {
+    const targetBeam = findBeamNear(p.x, p.y, 10);
+    if (targetBeam) {
+      toJoint = splitBeamAt(targetBeam, p.x, p.y);
+    } else {
+      toJoint = addJoint(p.x, p.y, false);
+    }
+  }
+
   if (fromJoint.id !== toJoint.id && !beamExists(fromJoint.id, toJoint.id))
     addBeam(fromJoint, toJoint, activeMaterial);
   drag = null;
 });
+
 canvas.addEventListener('pointerleave', () => { drag = null; });
 
 function canvasPos(e) {
   const r = canvas.getBoundingClientRect();
   return { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) };
+}
+
+// Split a beam at the closest point to (x, y), creating a new joint there
+// and replacing the original beam with two shorter ones of the same material.
+function splitBeamAt(beam, x, y) {
+  const a = jointById(beam.aId), b = jointById(beam.bId);
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len2 = dx*dx + dy*dy || 1;
+  // Clamp t away from the very ends so we don't create zero-length segments
+  const t = Math.max(0.08, Math.min(0.92, ((x-a.x)*dx + (y-a.y)*dy) / len2));
+  const sx = a.x + t*dx, sy = a.y + t*dy;
+  const mat = beam.material;
+  // Remove the original beam (cost refunded) then add two replacements
+  removeBeam(beam.id);
+  const newJoint = addJoint(sx, sy, false);
+  addBeam(a, newJoint, mat);
+  addBeam(newJoint, b, mat);
+  return newJoint;
 }
 
 // ============================================================
@@ -447,17 +502,33 @@ function drawBeamsBuildMode() {
 }
 
 function drawDragLine() {
-  const start = drag.from || pressDownPos;
+  const start = drag.from ? { x: drag.from.x, y: drag.from.y }
+              : drag.splitFrom ? closestPointOnBeam(drag.splitFrom, pressDownPos.x, pressDownPos.y)
+              : pressDownPos;
   ctx.save(); ctx.setLineDash([6,5]);
   ctx.lineWidth = MATERIALS[activeMaterial].thickness;
   ctx.strokeStyle = MATERIALS[activeMaterial].color; ctx.globalAlpha = 0.75;
   ctx.beginPath(); ctx.moveTo(start.x,start.y); ctx.lineTo(drag.x,drag.y); ctx.stroke();
   ctx.restore();
-  const snap = findNearestJoint(drag.x, drag.y, SNAP_RADIUS);
-  if (snap) {
+  const snapJ = findNearestJoint(drag.x, drag.y, SNAP_RADIUS);
+  if (snapJ) {
     ctx.beginPath(); ctx.strokeStyle = '#49b07d'; ctx.lineWidth = 2;
-    ctx.arc(snap.x, snap.y, SNAP_RADIUS, 0, Math.PI*2); ctx.stroke();
+    ctx.arc(snapJ.x, snapJ.y, SNAP_RADIUS, 0, Math.PI*2); ctx.stroke();
+  } else {
+    const snapB = findBeamNear(drag.x, drag.y, 10);
+    if (snapB) {
+      const pt = closestPointOnBeam(snapB, drag.x, drag.y);
+      ctx.beginPath(); ctx.strokeStyle = '#e8a33d'; ctx.lineWidth = 2;
+      ctx.arc(pt.x, pt.y, 8, 0, Math.PI*2); ctx.stroke();
+    }
   }
+}
+
+function closestPointOnBeam(beam, x, y) {
+  const a = jointById(beam.aId), b = jointById(beam.bId);
+  const dx = b.x-a.x, dy = b.y-a.y, len2 = dx*dx+dy*dy||1;
+  const t = Math.max(0.08, Math.min(0.92, ((x-a.x)*dx+(y-a.y)*dy)/len2));
+  return { x: a.x+t*dx, y: a.y+t*dy };
 }
 
 function drawBeamsPhysics() {
