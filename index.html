@@ -1,78 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Load Limit — Bridge Engineering Lab</title>
-<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="style.css"/>
 </head>
 <body>
 <div class="app-shell">
 
   <header class="hud-top">
-    <div>
+    <div class="title-block">
       <h1 class="game-title">LOAD <span>LIMIT</span></h1>
       <div class="game-subtitle">Bridge Engineering Lab</div>
     </div>
-
     <div class="hud-stats">
-      <div class="hud-stat">
-        <div class="hud-stat-label">Budget remaining</div>
-        <div class="hud-stat-value" id="hud-budget">$500,000</div>
-      </div>
-      <div class="hud-stat">
-        <div class="hud-stat-label">Spent so far</div>
-        <div class="hud-stat-value" id="hud-spent">$0</div>
-      </div>
-      <div class="hud-stat">
-        <div class="hud-stat-label">Status</div>
-        <div class="hud-stat-value" id="hud-wave">Ready</div>
-      </div>
+      <div class="hud-stat"><div class="hud-stat-label">Budget remaining</div><div class="hud-stat-value" id="hud-budget">$500,000</div></div>
+      <div class="hud-stat"><div class="hud-stat-label">Spent</div><div class="hud-stat-value" id="hud-spent">$0</div></div>
+      <div class="hud-stat"><div class="hud-stat-label">Status</div><div class="hud-stat-value" id="hud-wave">Ready</div></div>
     </div>
-
     <div class="hud-actions">
       <button class="btn-primary" id="btn-test">Test Bridge</button>
+      <button class="btn-secondary" id="btn-undo">↩ Undo</button>
       <button class="btn-secondary" id="btn-reset">Reset</button>
     </div>
   </header>
+
+  <!-- Level tabs -->
+  <div class="level-bar">
+    <div id="level-tabs"></div>
+    <div id="level-desc" class="level-desc"></div>
+  </div>
 
   <main class="game-area">
     <aside class="toolbar">
       <h3>Materials</h3>
 
       <button class="material-card" data-material="screw" style="border-color:#e8a33d">
-        <div><span class="material-swatch" style="background:#e8a33d"></span><span class="material-name">Junction Screw</span></div>
-        <div class="material-cost">Free · no beam drawn</div>
-        <div class="material-bar"><span class="fill" style="background:#e8a33d"></span></div>
-        <div class="material-note">Click anywhere on a beam to add a connection point. Then switch to a material and draw from it.</div>
+        <div><span class="material-swatch" style="background:#e8a33d"></span><span class="material-name">⚙️ Junction Screw</span></div>
+        <div class="material-cost">Free · adds a connect point</div>
+        <div class="material-bar"><span class="fill" style="background:#e8a33d"></span><span class="fill" style="background:#e8a33d"></span><span></span><span></span><span></span></div>
+        <div class="material-note">① Select ② Click beam to add dot ③ Switch material ④ Drag from dot</div>
       </button>
 
       <button class="material-card active" data-material="wood">
         <div><span class="material-swatch" style="background:#c89a64"></span><span class="material-name">Wood</span></div>
         <div class="material-cost">$14 / meter</div>
-        <div class="material-bar">
-          <span class="fill"></span><span class="fill"></span><span></span><span></span><span></span>
-        </div>
+        <div class="material-bar"><span class="fill"></span><span class="fill"></span><span></span><span></span><span></span></div>
         <div class="material-note">Cheap & light. Snaps under heavy loads.</div>
       </button>
 
       <button class="material-card" data-material="steel">
         <div><span class="material-swatch" style="background:#a9bdce"></span><span class="material-name">Steel</span></div>
         <div class="material-cost">$135 / meter</div>
-        <div class="material-bar">
-          <span class="fill"></span><span class="fill"></span><span class="fill"></span><span class="fill"></span><span class="fill"></span>
-        </div>
+        <div class="material-bar"><span class="fill"></span><span class="fill"></span><span class="fill"></span><span class="fill"></span><span class="fill"></span></div>
         <div class="material-note">Strongest by far. Expensive and heavy.</div>
       </button>
 
       <button class="material-card" data-material="concrete">
         <div><span class="material-swatch" style="background:#b3b1a6"></span><span class="material-name">Concrete</span></div>
         <div class="material-cost">$68 / meter</div>
-        <div class="material-bar">
-          <span class="fill"></span><span class="fill"></span><span class="fill"></span><span></span><span></span>
-        </div>
-        <div class="material-note">Decent strength, but very heavy on long spans.</div>
+        <div class="material-bar"><span class="fill"></span><span class="fill"></span><span class="fill"></span><span></span><span></span></div>
+        <div class="material-note">Decent strength, very heavy on long spans.</div>
       </button>
+
+      <div class="tool-section">
+        <h3>Build Tools</h3>
+        <button class="tool-btn" id="btn-sym">⟺ Symmetry</button>
+      </div>
+
+      <div class="tool-section">
+        <h3>Test Tools</h3>
+        <button class="tool-btn" id="btn-slow">🐢 Slow Motion</button>
+        <button class="tool-btn" id="btn-wind">💨 Wind Burst</button>
+        <button class="tool-btn" id="btn-quake">🌋 Earthquake</button>
+      </div>
+
+      <div class="lb-section">
+        <h3>Leaderboard</h3>
+        <div id="lb-panel"></div>
+      </div>
     </aside>
 
     <div class="stage-wrap">
@@ -89,7 +96,7 @@
 
   <footer class="hud-bottom">
     <div class="spawner" id="spawner">
-      <span class="spawner-label">SPAWN VEHICLE →</span>
+      <span class="spawner-label">SPAWN →</span>
       <button class="spawn-btn" data-type="sedan">🚗 Sedan<br><span>1,400 kg</span></button>
       <button class="spawn-btn" data-type="van">🚐 Van<br><span>2,800 kg</span></button>
       <button class="spawn-btn" data-type="truck">🚚 Box Truck<br><span>9,000 kg</span></button>
@@ -97,17 +104,13 @@
       <button class="spawn-btn danger" data-type="tank">🪖 Tank<br><span>60,000 kg</span></button>
     </div>
     <div class="bottom-strip">
-      <div class="legend">
-        <span>Beam stress</span>
-        <div class="legend-bar"></div>
-        <span>low → snapping</span>
-      </div>
+      <div class="legend"><span>Beam stress</span><div class="legend-bar"></div><span>low → snapping</span></div>
       <div id="instructions">Drag from an anchor point to draw your first beam.</div>
+      <div class="shortcuts">Shortcuts: <kbd>Ctrl+Z</kbd> undo · <kbd>S</kbd> symmetry · <kbd>M</kbd> slow-mo</div>
     </div>
   </footer>
 
 </div>
-
 <script src="script.js"></script>
 </body>
 </html>
