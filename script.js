@@ -1041,5 +1041,6 @@ buildLevelUI();
 buildChallengeUI();
 renderSaves();
 refreshHUD();
+requestAnimationFrame(loop); // start the render loop
 
 if(!localStorage.getItem('tutorialDone')) showTutorialStep(0);
