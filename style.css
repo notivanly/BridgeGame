@@ -349,3 +349,54 @@ kbd { background: rgba(255,255,255,0.1); border-radius: 3px; padding: 1px 4px; f
 
 /* ---------- Toolbar wider ---------- */
 .toolbar { width: 220px; }
+
+/* ---------- Right spawner panel ---------- */
+.spawner-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 10px;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 10px;
+  width: 110px;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+.spawner-heading {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #8a7d6a;
+  margin: 0 0 4px;
+  text-align: center;
+}
+.spawner-panel .spawn-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: #fff;
+  color: var(--ink);
+  border: 1.5px solid #d0c9b8;
+  border-radius: 8px;
+  padding: 10px 4px 8px;
+  font-family: 'Archivo', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, transform 0.07s;
+}
+.spawner-panel .spawn-btn span {
+  font-size: 9px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 400;
+  color: #8a7d6a;
+}
+.spawner-panel .spawn-btn:hover { background: #fffaf0; border-color: var(--amber); }
+.spawner-panel .spawn-btn:active { transform: scale(0.95); }
+.spawner-panel .spawn-btn.danger { border-color: #d0a0a0; }
+.spawner-panel .spawn-btn.danger:hover { border-color: var(--danger); background: #fff5f5; }
+
+/* Remove old bottom spawner styles */
+.spawner { display: none; }
