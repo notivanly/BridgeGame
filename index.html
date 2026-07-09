@@ -14,33 +14,36 @@
       <h1 class="game-title">LOAD <span>LIMIT</span></h1>
       <div class="game-subtitle">Bridge Engineering Lab</div>
     </div>
+    <div id="mode-badge" class="mode-badge" style="display:none"></div>
     <div class="hud-stats">
-      <div class="hud-stat"><div class="hud-stat-label">Budget remaining</div><div class="hud-stat-value" id="hud-budget">$500,000</div></div>
+      <div class="hud-stat"><div class="hud-stat-label">Budget left</div><div class="hud-stat-value" id="hud-budget">$300,000</div></div>
       <div class="hud-stat"><div class="hud-stat-label">Spent</div><div class="hud-stat-value" id="hud-spent">$0</div></div>
       <div class="hud-stat"><div class="hud-stat-label">Status</div><div class="hud-stat-value" id="hud-wave">Ready</div></div>
     </div>
     <div class="hud-actions">
-      <button class="btn-primary" id="btn-test">Test Bridge</button>
+      <button class="btn-primary" id="btn-test">▶ Test Bridge</button>
       <button class="btn-secondary" id="btn-undo">↩ Undo</button>
-      <button class="btn-secondary" id="btn-reset">Reset</button>
+      <button class="btn-secondary" id="btn-reset">↺ Reset</button>
     </div>
   </header>
 
-  <!-- Level tabs -->
+  <!-- Level bar -->
   <div class="level-bar">
     <div id="level-tabs"></div>
     <div id="level-desc" class="level-desc"></div>
+    <button class="btn-tiny" id="btn-free-build">✕ Exit Challenge</button>
   </div>
 
   <main class="game-area">
+
+    <!-- Left toolbar -->
     <aside class="toolbar">
       <h3>Materials</h3>
 
       <button class="material-card" data-material="screw" style="border-color:#e8a33d">
         <div><span class="material-swatch" style="background:#e8a33d"></span><span class="material-name">⚙️ Junction Screw</span></div>
         <div class="material-cost">Free · adds a connect point</div>
-        <div class="material-bar"><span class="fill" style="background:#e8a33d"></span><span class="fill" style="background:#e8a33d"></span><span></span><span></span><span></span></div>
-        <div class="material-note">① Select ② Click beam to add dot ③ Switch material ④ Drag from dot</div>
+        <div class="material-note">① Select ② Click beam ③ Switch material ④ Drag from dot</div>
       </button>
 
       <button class="material-card active" data-material="wood">
@@ -64,9 +67,16 @@
         <div class="material-note">Decent strength, very heavy on long spans.</div>
       </button>
 
+      <button class="material-card" data-material="cable">
+        <div><span class="material-swatch" style="background:#f0c040"></span><span class="material-name">Cable</span></div>
+        <div class="material-cost">$45 / meter</div>
+        <div class="material-bar"><span class="fill" style="background:#f0c040"></span><span class="fill" style="background:#f0c040"></span><span class="fill" style="background:#f0c040"></span><span></span><span></span></div>
+        <div class="material-note">Tension only — perfect for suspension bridges.</div>
+      </button>
+
       <div class="tool-section">
         <h3>Build Tools</h3>
-        <button class="tool-btn" id="btn-sym">⟺ Symmetry</button>
+        <button class="tool-btn" id="btn-sym">⟺ Symmetry Mode</button>
       </div>
 
       <div class="tool-section">
@@ -76,12 +86,20 @@
         <button class="tool-btn" id="btn-quake">🌋 Earthquake</button>
       </div>
 
+      <div class="tool-section">
+        <h3>Save Design</h3>
+        <input type="text" id="save-name-input" class="save-input" placeholder="Design name…"/>
+        <button class="tool-btn" id="btn-save">💾 Save Current</button>
+        <div id="saves-list" class="saves-list"></div>
+      </div>
+
       <div class="lb-section">
-        <h3>Leaderboard</h3>
+        <h3>Best Scores</h3>
         <div id="lb-panel"></div>
       </div>
     </aside>
 
+    <!-- Canvas -->
     <div class="stage-wrap">
       <canvas id="stage" width="1000" height="560"></canvas>
       <div class="banner" id="banner">
@@ -93,6 +111,7 @@
       </div>
     </div>
 
+    <!-- Right spawner -->
     <aside class="spawner-panel">
       <h3 class="spawner-heading">SPAWN VEHICLE</h3>
       <button class="spawn-btn" data-type="sedan">🚗<br><strong>Sedan</strong><br><span>1,400 kg</span></button>
@@ -100,18 +119,39 @@
       <button class="spawn-btn" data-type="truck">🚚<br><strong>Box Truck</strong><br><span>9,000 kg</span></button>
       <button class="spawn-btn" data-type="semi">🚛<br><strong>Semi</strong><br><span>18,000 kg</span></button>
       <button class="spawn-btn danger" data-type="tank">🪖<br><strong>Tank</strong><br><span>60,000 kg</span></button>
+
+      <div class="challenge-section">
+        <h3 class="spawner-heading" style="margin-top:16px">CHALLENGES</h3>
+        <div id="challenge-list"></div>
+      </div>
     </aside>
+
   </main>
 
+  <!-- Bottom bar -->
   <footer class="hud-bottom">
     <div class="bottom-strip">
-      <div class="legend"><span>Beam stress</span><div class="legend-bar"></div><span>low → snapping</span></div>
+      <div class="legend"><span>Beam stress</span><div class="legend-bar"></div><span>low → snap</span></div>
       <div id="instructions">Drag from an anchor point to draw your first beam.</div>
-      <div class="shortcuts">Shortcuts: <kbd>Ctrl+Z</kbd> undo · <kbd>S</kbd> symmetry · <kbd>M</kbd> slow-mo</div>
+      <div class="shortcuts"><kbd>Ctrl+Z</kbd> undo · <kbd>S</kbd> symmetry · <kbd>M</kbd> slow-mo · <kbd>Esc</kbd> dismiss</div>
     </div>
   </footer>
 
 </div>
+
+<!-- Tutorial overlay -->
+<div id="tutorial-overlay" class="tutorial-overlay" style="display:none">
+  <div class="tutorial-card">
+    <div class="tut-step" id="tut-step">1 / 6</div>
+    <h2 id="tut-title">Welcome</h2>
+    <p id="tut-body">…</p>
+    <div class="tut-buttons">
+      <button class="btn-secondary" id="btn-tut-skip">Skip Tutorial</button>
+      <button class="btn-primary" id="btn-tut-next">Next →</button>
+    </div>
+  </div>
+</div>
+
 <script src="script.js"></script>
 </body>
 </html>
