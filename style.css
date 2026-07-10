@@ -80,8 +80,8 @@ button:disabled { opacity:.35; cursor:not-allowed; }
 .lb-empty { color:#847b69; font-size:11px; font-style:italic; }
 
 /* Stage */
-.stage-wrap { position:relative; border-radius:10px; overflow:hidden; border:2px solid #1c4a73; box-shadow:0 10px 30px rgba(0,0,0,.35); flex:1; min-width:400px; }
-#stage { display:block; cursor:crosshair; background:var(--bg-deep); width:100%; }
+.stage-wrap { position:relative; border-radius:10px; overflow:hidden; border:2px solid #1c4a73; box-shadow:0 10px 30px rgba(0,0,0,.35); flex:0 0 auto; width:900px; max-width:calc(100vw - 380px); }
+#stage { display:block; cursor:crosshair; background:var(--bg-deep); width:900px; height:506px; max-width:100%; }
 
 /* Banner */
 .banner { position:absolute; inset:0; background:rgba(8,20,35,.82); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .25s; }
