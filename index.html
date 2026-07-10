@@ -101,7 +101,7 @@
 
     <!-- Canvas -->
     <div class="stage-wrap">
-      <canvas id="stage" width="900" height="506"></canvas>
+      <canvas id="stage" width="900" height="600"></canvas>
       <div class="banner" id="banner">
         <div class="banner-card">
           <h2 id="banner-title">Result</h2>
@@ -113,16 +113,50 @@
 
     <!-- Right spawner -->
     <aside class="spawner-panel">
-      <h3 class="spawner-heading">Spawn Vehicle</h3>
-      <button class="spawn-btn" data-type="sedan"><span class="spawn-emoji">🚗</span><span class="spawn-info"><span class="spawn-label">Sedan</span><span>1,400 kg</span></span></button>
-      <button class="spawn-btn" data-type="van"><span class="spawn-emoji">🚐</span><span class="spawn-info"><span class="spawn-label">Van</span><span>2,800 kg</span></span></button>
-      <button class="spawn-btn" data-type="truck"><span class="spawn-emoji">🚚</span><span class="spawn-info"><span class="spawn-label">Box Truck</span><span>9,000 kg</span></span></button>
-      <button class="spawn-btn" data-type="semi"><span class="spawn-emoji">🚛</span><span class="spawn-info"><span class="spawn-label">Semi</span><span>18,000 kg</span></span></button>
-      <button class="spawn-btn danger" data-type="tank"><span class="spawn-emoji">🪖</span><span class="spawn-info"><span class="spawn-label">Tank</span><span>60,000 kg</span></span></button>
+      <h3 class="toolbar-h3">Spawn Vehicle</h3>
+
+      <button class="spawn-btn" data-type="sedan">
+        <div class="spawn-row"><span class="spawn-emoji">🚗</span><span class="spawn-name">Sedan</span></div>
+        <div class="spawn-kg">1,400 kg</div>
+      </button>
+      <button class="spawn-btn" data-type="van">
+        <div class="spawn-row"><span class="spawn-emoji">🚐</span><span class="spawn-name">Van</span></div>
+        <div class="spawn-kg">2,800 kg</div>
+      </button>
+      <button class="spawn-btn" data-type="truck">
+        <div class="spawn-row"><span class="spawn-emoji">🚚</span><span class="spawn-name">Box Truck</span></div>
+        <div class="spawn-kg">9,000 kg</div>
+      </button>
+      <button class="spawn-btn" data-type="semi">
+        <div class="spawn-row"><span class="spawn-emoji">🚛</span><span class="spawn-name">Semi</span></div>
+        <div class="spawn-kg">18,000 kg</div>
+      </button>
+      <button class="spawn-btn danger" data-type="tank">
+        <div class="spawn-row"><span class="spawn-emoji">🪖</span><span class="spawn-name">Tank</span></div>
+        <div class="spawn-kg">60,000 kg</div>
+      </button>
 
       <div class="challenge-section">
-        <h3 class="spawner-heading" style="margin-top:14px">Challenges</h3>
+        <h3 class="toolbar-h3" style="margin-top:14px">Challenges</h3>
         <div id="challenge-list"></div>
+      </div>
+
+      <div class="tips-section">
+        <h3 class="toolbar-h3" style="margin-top:14px">Quick Tips</h3>
+        <div class="tip-card">🔺 <strong>Triangles are strong.</strong> Every span should have diagonal bracing.</div>
+        <div class="tip-card">🪢 <strong>Cables need height.</strong> Connect them to the blue tower anchors for suspension bridges.</div>
+        <div class="tip-card">⚙️ <strong>Screws add flex.</strong> Place junction screws along a beam to connect diagonals anywhere.</div>
+        <div class="tip-card">💛 <strong>Watch the colors.</strong> Amber = stressed, red = about to snap.</div>
+        <div class="tip-card">⟺ <strong>Symmetry mode</strong> mirrors every beam you draw — build half a truss and get a full one free.</div>
+        <div class="tip-card">🐢 <strong>Slow motion</strong> lets you watch exactly where failure starts.</div>
+      </div>
+
+      <div class="stats-section">
+        <h3 class="toolbar-h3" style="margin-top:14px">Live Stats</h3>
+        <div class="stat-row"><span class="stat-label">Vehicles crossed</span><span class="stat-val" id="stat-crossed">—</span></div>
+        <div class="stat-row"><span class="stat-label">Max load survived</span><span class="stat-val" id="stat-maxload">—</span></div>
+        <div class="stat-row"><span class="stat-label">Beams broken</span><span class="stat-val" id="stat-broken">—</span></div>
+        <div class="stat-row"><span class="stat-label">Peak stress</span><span class="stat-val" id="stat-stress">—</span></div>
       </div>
     </aside>
 
