@@ -511,6 +511,7 @@ function getBridgeSurfaceY(vx){
   let sy=null;
   for(const sb of simBeams){
     if(sb.broken) continue;
+    if(sb.material.tensionOnly) continue; // cables are not a road surface
     const sja=simJoints[sb.ai],sjb=simJoints[sb.bi];
     const minX=Math.min(sja.x,sjb.x),maxX=Math.max(sja.x,sjb.x);
     if(vx<minX||vx>maxX) continue;
