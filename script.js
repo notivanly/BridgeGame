@@ -8,11 +8,11 @@
 // ---------- Canvas ----------
 const canvas = document.getElementById('stage');
 const ctx    = canvas.getContext('2d');
-const W = 900, H = 506;
-const GROUND_Y = 378;
+const W = 900, H = 600;
+const GROUND_Y = 440;
 const METERS_PER_PIXEL = 0.05;
 const SNAP_RADIUS = 30;
-const TOWER_H = 150; // how far above road the suspension tower anchors sit
+const TOWER_H = 170; // how far above road the suspension tower anchors sit
 
 // ---------- Audio ----------
 let audioCtx = null;
@@ -992,6 +992,23 @@ function refreshHUD(){
   if(el.quakeBtn) el.quakeBtn.classList.toggle('active-tool',quakeActive);
   if(mode!=='lost'&&mode!=='won') hideBanner();
   renderLeaderboard();
+  // Live stats
+  const sCrossed=document.getElementById('stat-crossed');
+  const sMaxload=document.getElementById('stat-maxload');
+  const sBroken=document.getElementById('stat-broken');
+  const sStress=document.getElementById('stat-stress');
+  if(mode==='simulating'||mode==='lost'||mode==='won'){
+    if(sCrossed) sCrossed.textContent=vehiclesCrossed;
+    if(sMaxload) sMaxload.textContent=maxLoadSurvived?maxLoadSurvived.toLocaleString()+' kg':'—';
+    if(sBroken)  sBroken.textContent=simBeams.filter(b=>b.broken).length;
+    const peak=simBeams.reduce((m,b)=>Math.max(m,b.stress),0);
+    if(sStress)  sStress.textContent=peak>0?Math.round(peak/1.4*100)+'%':'—';
+  } else {
+    if(sCrossed) sCrossed.textContent='—';
+    if(sMaxload) sMaxload.textContent='—';
+    if(sBroken)  sBroken.textContent='—';
+    if(sStress)  sStress.textContent='—';
+  }
 }
 
 function renderLeaderboard(){
