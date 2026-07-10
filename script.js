@@ -191,7 +191,7 @@ function renderSaves() {
 // Init
 // ============================================================
 function initJoints() {
-  joints=getAnchors().map(a=>({id:nextId++,x:a.x,y:a.y,fixed:true}));
+  joints = getAnchors().map(a=>({id:nextId++, x:a.x, y:a.y, fixed:true, isTower:a.label==='tower'}));
   beams=[]; totalCost=0; history=[];
 }
 
@@ -350,6 +350,12 @@ function addJoint(x,y,fixed){const j={id:nextId++,x,y,fixed};joints.push(j);retu
 function addBeam(a,b,matKey){
   if(challengeMode?.materialLock&&!challengeMode.materialLock.includes(matKey)&&matKey!=='screw'){
     flashMessage('Challenge: only '+challengeMode.materialLock.join('/')+' allowed!'); return;
+  }
+  // Tower anchors only accept cables — they're suspension points, not road anchors
+  const touchesTower = (a.isTower || b.isTower);
+  if(touchesTower && matKey !== 'cable'){
+    flashMessage('⚠️ Tower anchors only accept Cable — switch to Cable material first.');
+    return;
   }
   const mat=MATERIALS[matKey],len=dist(a.x,a.y,b.x,b.y);
   beams.push({id:nextId++,aId:a.id,bId:b.id,material:matKey,length:len});
@@ -759,11 +765,16 @@ function drawSpanDimension(){
 function drawAnchors(){
   for(const a of getAnchors()){
     if(a.label==='tower'){
-      // Tower anchor — blue diamond
+      // Tower anchor — blue diamond with "cable only" label
       ctx.save();ctx.translate(a.x,a.y);ctx.rotate(Math.PI/4);
       ctx.beginPath();ctx.fillStyle='rgba(100,180,255,0.2)';ctx.rect(-10,-10,20,20);ctx.fill();
       ctx.beginPath();ctx.fillStyle='#64b4ff';ctx.rect(-6,-6,12,12);ctx.fill();
       ctx.strokeStyle='#16212c';ctx.lineWidth=2;ctx.stroke();ctx.restore();
+      // "cable only" hint below the top tower anchor
+      if(a.y < GROUND_Y - TOWER_H + 20){
+        ctx.save();ctx.font='9px "IBM Plex Mono",monospace';ctx.fillStyle='#64b4ff';
+        ctx.textAlign='center';ctx.fillText('cable only',a.x,a.y+22);ctx.restore();
+      }
     } else {
       // Standard road anchor — amber circle
       ctx.beginPath();ctx.fillStyle='rgba(232,163,61,0.25)';ctx.arc(a.x,a.y,12,0,Math.PI*2);ctx.fill();
