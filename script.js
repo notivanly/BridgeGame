@@ -8,10 +8,11 @@
 // ---------- Canvas ----------
 const canvas = document.getElementById('stage');
 const ctx    = canvas.getContext('2d');
-const W = 1000, H = 560;
-const GROUND_Y = 420;
+const W = 900, H = 506;
+const GROUND_Y = 378;
 const METERS_PER_PIXEL = 0.05;
 const SNAP_RADIUS = 30;
+const TOWER_H = 150; // how far above road the suspension tower anchors sit
 
 // ---------- Audio ----------
 let audioCtx = null;
@@ -57,12 +58,12 @@ function stopCreak() { if (creakInterval) { clearInterval(creakInterval); creakI
 
 // ---------- Levels ----------
 const LEVELS = [
-  { id:0, name:'Narrow Gorge',   chasmLeft:320, chasmRight:680, budget:120000, pier:false, desc:'Short span — master the basics on a tight budget.' },
-  { id:1, name:'River Crossing', chasmLeft:260, chasmRight:740, budget:300000, pier:false, desc:'Standard span. Bracing is key for heavy trucks.' },
-  { id:2, name:'Grand Canyon',   chasmLeft:180, chasmRight:820, budget:500000, pier:true,  desc:'Wide gap with a mid-span pier. Steel trusses only.' },
+  { id:0, name:'Narrow Gorge',   chasmLeft:288, chasmRight:612, budget:120000, pier:false, desc:'Short span — master the basics on a tight budget.' },
+  { id:1, name:'River Crossing', chasmLeft:234, chasmRight:666, budget:300000, pier:false, desc:'Standard span. Bracing is key for heavy trucks.' },
+  { id:2, name:'Grand Canyon',   chasmLeft:162, chasmRight:738, budget:500000, pier:true,  desc:'Wide gap with a mid-span pier. Steel trusses only.' },
 ];
 let currentLevel = 1;
-let challengeMode = null; // null = free build, or {id, objective, materialLock, timeLimit}
+let challengeMode = null;
 
 const CHALLENGES = [
   { id:0, level:0, name:'Budget Builder',  desc:'Survive a Van for under $15,000',            budget:15000,  timeLimit:180, materialLock:null,       objective:{vehicle:'van',   maxCost:15000}  },
@@ -78,16 +79,22 @@ function CR()  { return lvl().chasmRight; }
 function BUD() { return challengeMode ? challengeMode.budget : lvl().budget; }
 function getAnchors() {
   const anchors = [
-    { x:CL(),  y:GROUND_Y+5  },
-    { x:CL(),  y:GROUND_Y+60 },
-    { x:CR(),  y:GROUND_Y+5  },
-    { x:CR(),  y:GROUND_Y+60 },
+    // Road-level anchors (4 standard)
+    { x:CL(),  y:GROUND_Y+5,  label:'road' },
+    { x:CL(),  y:GROUND_Y+55, label:'road' },
+    { x:CR(),  y:GROUND_Y+5,  label:'road' },
+    { x:CR(),  y:GROUND_Y+55, label:'road' },
+    // Suspension tower anchors — high above the cliff edges
+    { x:CL()-18, y:GROUND_Y-TOWER_H,     label:'tower' },
+    { x:CL()-18, y:GROUND_Y-TOWER_H/2,   label:'tower' },
+    { x:CR()+18, y:GROUND_Y-TOWER_H,     label:'tower' },
+    { x:CR()+18, y:GROUND_Y-TOWER_H/2,   label:'tower' },
   ];
   if (lvl().pier) {
     const cx = (CL()+CR())/2;
-    anchors.push({ x:cx, y:GROUND_Y+5 });
-    anchors.push({ x:cx, y:GROUND_Y+60 });
-    anchors.push({ x:cx, y:GROUND_Y+120 });
+    anchors.push({ x:cx, y:GROUND_Y+5,  label:'road'  });
+    anchors.push({ x:cx, y:GROUND_Y+55, label:'road'  });
+    anchors.push({ x:cx, y:GROUND_Y+110,label:'road'  });
   }
   return anchors;
 }
@@ -714,6 +721,17 @@ function drawTerrain(){
     ctx.fillStyle='#3a4a52';
     ctx.fillRect(cx-14,GROUND_Y,28,12);
   }
+  // Suspension tower pylons — drawn before cliffs so they sit on top
+  ctx.fillStyle='#2a3a52';
+  [[CL()-18, GROUND_Y-TOWER_H],[CR()+18, GROUND_Y-TOWER_H]].forEach(([tx,ty])=>{
+    ctx.fillRect(tx-5, ty, 10, GROUND_Y-ty+5);
+    // cross beam
+    ctx.fillRect(tx-18, ty+30, 36, 6);
+    ctx.fillRect(tx-14, ty+55, 28, 5);
+    // cap
+    ctx.beginPath();ctx.fillStyle='#64b4ff';ctx.arc(tx,ty,5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#2a3a52';
+  });
   // Cliffs
   ctx.fillStyle='#3a4a52';
   ctx.fillRect(0,GROUND_Y,CL(),H-GROUND_Y);
@@ -739,9 +757,18 @@ function drawSpanDimension(){
 
 function drawAnchors(){
   for(const a of getAnchors()){
-    ctx.beginPath();ctx.fillStyle='rgba(232,163,61,0.25)';ctx.arc(a.x,a.y,12,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.fillStyle='#e8a33d';ctx.arc(a.x,a.y,7,0,Math.PI*2);ctx.fill();
-    ctx.lineWidth=2;ctx.strokeStyle='#16212c';ctx.stroke();
+    if(a.label==='tower'){
+      // Tower anchor — blue diamond
+      ctx.save();ctx.translate(a.x,a.y);ctx.rotate(Math.PI/4);
+      ctx.beginPath();ctx.fillStyle='rgba(100,180,255,0.2)';ctx.rect(-10,-10,20,20);ctx.fill();
+      ctx.beginPath();ctx.fillStyle='#64b4ff';ctx.rect(-6,-6,12,12);ctx.fill();
+      ctx.strokeStyle='#16212c';ctx.lineWidth=2;ctx.stroke();ctx.restore();
+    } else {
+      // Standard road anchor — amber circle
+      ctx.beginPath();ctx.fillStyle='rgba(232,163,61,0.25)';ctx.arc(a.x,a.y,12,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.fillStyle='#e8a33d';ctx.arc(a.x,a.y,7,0,Math.PI*2);ctx.fill();
+      ctx.lineWidth=2;ctx.strokeStyle='#16212c';ctx.stroke();
+    }
   }
   if(symmetryMode){
     const cx=(CL()+CR())/2;
