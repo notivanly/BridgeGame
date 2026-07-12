@@ -135,3 +135,12 @@ kbd { background:rgba(255,255,255,.1); border-radius:3px; padding:1px 4px; font-
 .stat-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid #e3ddcb; font-size:11px; }
 .stat-label { color:#847b69; }
 .stat-val { font-family:'IBM Plex Mono',monospace; font-weight:600; color:var(--ink); font-size:11px; }
+
+/* Leaderboard mini chart */
+.lb-chart { display:flex; align-items:flex-end; gap:3px; height:65px; margin:8px 0 10px; padding:0 2px; }
+.lb-bar-wrap { flex:1; display:flex; align-items:flex-end; }
+.lb-bar-fill { width:100%; border-radius:2px 2px 0 0; min-height:4px; }
+
+/* Delete mode card */
+.material-card[data-material="delete"] { border-color:#fcd4d0; }
+.material-card[data-material="delete"].active { border-color:#d4483a; background:#fff5f5; }
