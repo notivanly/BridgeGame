@@ -18,6 +18,8 @@
     <div class="hud-stats">
       <div class="hud-stat"><div class="hud-stat-label">Budget left</div><div class="hud-stat-value" id="hud-budget">$300,000</div></div>
       <div class="hud-stat"><div class="hud-stat-label">Spent</div><div class="hud-stat-value" id="hud-spent">$0</div></div>
+      <div class="hud-stat"><div class="hud-stat-label">Beams</div><div class="hud-stat-value" id="hud-beams">0</div></div>
+      <div class="hud-stat"><div class="hud-stat-label">Length</div><div class="hud-stat-value" id="hud-length">0m</div></div>
       <div class="hud-stat"><div class="hud-stat-label">Status</div><div class="hud-stat-value" id="hud-wave">Ready</div></div>
     </div>
     <div class="hud-actions">
@@ -27,7 +29,6 @@
     </div>
   </header>
 
-  <!-- Level bar -->
   <div class="level-bar">
     <div id="level-tabs"></div>
     <div id="level-desc" class="level-desc"></div>
@@ -39,34 +40,34 @@
     <!-- Left toolbar -->
     <aside class="toolbar">
       <h3>Materials</h3>
-
+      <button class="material-card" data-material="delete">
+        <div><span class="material-swatch" style="background:#d4483a"></span><span class="material-name">🗑 Delete Mode</span></div>
+        <div class="material-cost">Click a beam to erase it</div>
+        <div class="material-note">Hover to highlight, click to remove. No accidental deletions.</div>
+      </button>
       <button class="material-card" data-material="screw" style="border-color:#e8a33d">
         <div><span class="material-swatch" style="background:#e8a33d"></span><span class="material-name">⚙️ Junction Screw</span></div>
         <div class="material-cost">Free · adds a connect point</div>
         <div class="material-note">① Select ② Click beam ③ Switch material ④ Drag from dot</div>
       </button>
-
       <button class="material-card active" data-material="wood">
         <div><span class="material-swatch" style="background:#c89a64"></span><span class="material-name">Wood</span></div>
         <div class="material-cost">$14 / meter</div>
         <div class="material-bar"><span class="fill"></span><span class="fill"></span><span></span><span></span><span></span></div>
         <div class="material-note">Cheap & light. Snaps under heavy loads.</div>
       </button>
-
       <button class="material-card" data-material="steel">
         <div><span class="material-swatch" style="background:#a9bdce"></span><span class="material-name">Steel</span></div>
         <div class="material-cost">$135 / meter</div>
         <div class="material-bar"><span class="fill"></span><span class="fill"></span><span class="fill"></span><span class="fill"></span><span class="fill"></span></div>
         <div class="material-note">Strongest by far. Expensive and heavy.</div>
       </button>
-
       <button class="material-card" data-material="concrete">
         <div><span class="material-swatch" style="background:#b3b1a6"></span><span class="material-name">Concrete</span></div>
         <div class="material-cost">$68 / meter</div>
         <div class="material-bar"><span class="fill"></span><span class="fill"></span><span class="fill"></span><span></span><span></span></div>
         <div class="material-note">Decent strength, very heavy on long spans.</div>
       </button>
-
       <button class="material-card" data-material="cable">
         <div><span class="material-swatch" style="background:#f0c040"></span><span class="material-name">Cable</span></div>
         <div class="material-cost">$45 / meter</div>
@@ -77,6 +78,8 @@
       <div class="tool-section">
         <h3>Build Tools</h3>
         <button class="tool-btn" id="btn-sym">⟺ Symmetry Mode</button>
+        <button class="tool-btn" id="btn-copy">⧉ Copy Left Half</button>
+        <button class="tool-btn" id="btn-night">🌙 Night Mode</button>
       </div>
 
       <div class="tool-section">
@@ -84,12 +87,14 @@
         <button class="tool-btn" id="btn-slow">🐢 Slow Motion</button>
         <button class="tool-btn" id="btn-wind">💨 Wind Burst</button>
         <button class="tool-btn" id="btn-quake">🌋 Earthquake</button>
+        <button class="tool-btn" id="btn-rain">🌧 Rain Storm</button>
       </div>
 
       <div class="tool-section">
         <h3>Save Design</h3>
         <input type="text" id="save-name-input" class="save-input" placeholder="Design name…"/>
         <button class="tool-btn" id="btn-save">💾 Save Current</button>
+        <button class="tool-btn" id="btn-restore-auto">↩ Restore Auto-Save</button>
         <div id="saves-list" class="saves-list"></div>
       </div>
 
@@ -111,10 +116,9 @@
       </div>
     </div>
 
-    <!-- Right spawner -->
+    <!-- Right panel -->
     <aside class="spawner-panel">
       <h3 class="toolbar-h3">Spawn Vehicle</h3>
-
       <button class="spawn-btn" data-type="sedan">
         <div class="spawn-row"><span class="spawn-emoji">🚗</span><span class="spawn-name">Sedan</span></div>
         <div class="spawn-kg">1,400 kg</div>
@@ -143,12 +147,12 @@
 
       <div class="tips-section">
         <h3 class="toolbar-h3" style="margin-top:14px">Quick Tips</h3>
-        <div class="tip-card">🔺 <strong>Triangles are strong.</strong> Every span should have diagonal bracing.</div>
-        <div class="tip-card">🪢 <strong>Cables need height.</strong> Connect them to the blue tower anchors for suspension bridges.</div>
-        <div class="tip-card">⚙️ <strong>Screws add flex.</strong> Place junction screws along a beam to connect diagonals anywhere.</div>
+        <div class="tip-card">🔺 <strong>Triangles are strong.</strong> Every span needs diagonal bracing.</div>
+        <div class="tip-card">🪢 <strong>Cables need height.</strong> Connect to blue tower anchors for suspension designs.</div>
+        <div class="tip-card">⚙️ <strong>Screws add flex.</strong> Add junction points anywhere along a beam.</div>
         <div class="tip-card">💛 <strong>Watch the colors.</strong> Amber = stressed, red = about to snap.</div>
-        <div class="tip-card">⟺ <strong>Symmetry mode</strong> mirrors every beam you draw — build half a truss and get a full one free.</div>
-        <div class="tip-card">🐢 <strong>Slow motion</strong> lets you watch exactly where failure starts.</div>
+        <div class="tip-card">⟺ <strong>Symmetry + Copy</strong> let you build half a truss and get the rest free.</div>
+        <div class="tip-card">🔍 <strong>Scroll to zoom.</strong> Get precise on tight junctions.</div>
       </div>
 
       <div class="stats-section">
@@ -159,28 +163,25 @@
         <div class="stat-row"><span class="stat-label">Peak stress</span><span class="stat-val" id="stat-stress">—</span></div>
       </div>
     </aside>
-
   </main>
 
-  <!-- Bottom bar -->
   <footer class="hud-bottom">
     <div class="bottom-strip">
       <div class="legend"><span>Beam stress</span><div class="legend-bar"></div><span>low → snap</span></div>
       <div id="instructions">Drag from an anchor point to draw your first beam.</div>
-      <div class="shortcuts"><kbd>Ctrl+Z</kbd> undo · <kbd>S</kbd> symmetry · <kbd>M</kbd> slow-mo · <kbd>Esc</kbd> dismiss</div>
+      <div class="shortcuts"><kbd>Ctrl+Z</kbd> undo · <kbd>S</kbd> symmetry · <kbd>M</kbd> slow-mo · <kbd>N</kbd> night · <kbd>D</kbd> delete · <kbd>Esc</kbd> reset zoom</div>
     </div>
   </footer>
 
 </div>
 
-<!-- Tutorial overlay -->
 <div id="tutorial-overlay" class="tutorial-overlay" style="display:none">
   <div class="tutorial-card">
     <div class="tut-step" id="tut-step">1 / 6</div>
     <h2 id="tut-title">Welcome</h2>
     <p id="tut-body">…</p>
     <div class="tut-buttons">
-      <button class="btn-secondary" id="btn-tut-skip">Skip Tutorial</button>
+      <button class="btn-secondary" id="btn-tut-skip">Skip</button>
       <button class="btn-primary" id="btn-tut-next">Next →</button>
     </div>
   </div>
