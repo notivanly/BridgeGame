@@ -1178,3 +1178,169 @@ canvas.addEventListener('pointerdown', e => {
   const p = _origCanvasPos ? _origCanvasPos.call(null, e) : canvasPos(e);
   // Grid snap is applied when joints are created — handled in addJoint callers
 }, true);
+
+
+// ============================================================
+// VISIT COUNTER
+// ============================================================
+(function(){
+  const key='bridge_visits';
+  const v=parseInt(localStorage.getItem(key)||'0')+1;
+  localStorage.setItem(key,v);
+  const el=document.getElementById('visit-count');
+  if(el) el.textContent=v.toLocaleString()+' plays on this device';
+})();
+
+// ============================================================
+// KEYBOARD SHORTCUTS MODAL
+// ============================================================
+function showShortcuts(){
+  const el=document.getElementById('shortcuts-modal');
+  if(el) el.style.display=el.style.display==='flex'?'none':'flex';
+}
+document.getElementById('btn-shortcuts')?.addEventListener('click',showShortcuts);
+document.getElementById('shortcuts-close')?.addEventListener('click',()=>{document.getElementById('shortcuts-modal').style.display='none';});
+window.addEventListener('keydown',e=>{if(e.key==='?')showShortcuts();});
+
+// ============================================================
+// NIGHT MODE — SYNC UI PANELS
+// ============================================================
+function applyNightUI(){
+  document.body.classList.toggle('night-ui',nightMode);
+}
+const _origNightToggle=el.nightBtn;
+el.nightBtn?.addEventListener('click',()=>{nightMode=!nightMode;applyNightUI();refreshHUD();},true);
+
+// ============================================================
+// GUIDED LESSONS
+// ============================================================
+const LESSONS=[
+  {id:0,title:'Lesson 1: The Problem of Span',
+   concept:'A horizontal beam spanning a gap experiences maximum bending moment at its center — the top surface is in compression, the bottom in tension. Without support, long beams sag and fail.',
+   goal:'Build a single steel beam across the gap. Test it with a Sedan and watch what happens.',
+   hint:'Draw one beam from the left amber anchor to the right amber anchor. Hit Test Bridge, then spawn a Sedan.',
+   check:()=>vehiclesCrossed>=1||simBeams.some(b=>b.broken),
+   explain:'The center of a simply-supported beam carries the most bending stress. This is why long unbraced spans always fail at mid-span first. The fix: triangulation.'},
+  {id:1,title:'Lesson 2: The Triangle of Strength',
+   concept:'Triangles are the only geometric shape that cannot deform without changing a side length. This makes triangulated structures (trusses) far stiffer than beams alone.',
+   goal:'Add diagonal members to your beam to form triangles. Survive a Van.',
+   hint:'Add joints below the road level using the lower anchor dots. Connect diagonals between the top chord and these lower points.',
+   check:()=>vehiclesCrossed>=1&&beams.some(b=>{const a=jointById(b.aId),c=jointById(b.bId);if(!a||!c)return false;const ang=Math.abs(Math.atan2(c.y-a.y,c.x-a.x));return ang>.2&&ang<Math.PI-.2;}),
+   explain:'Each triangle in a truss converts bending into pure axial force — either tension or compression along the member. Materials are roughly 10× stronger in axial loading than in bending, so trusses are vastly more efficient than solid beams.'},
+  {id:2,title:'Lesson 3: Material Matters',
+   concept:'Different materials have radically different strength-to-cost ratios. Efficient engineers use cheaper materials where stress is low, and premium materials only where needed.',
+   goal:'Build the same basic truss with wood, then rebuild it with steel. Compare what load each survives.',
+   hint:'Build a truss in Wood (sag limit: 2.5px). Note when it fails. Reset, rebuild identically in Steel (sag limit: 22px). The difference will be dramatic.',
+   check:()=>vehiclesCrossed>=1&&beams.some(b=>b.material==='steel'),
+   explain:'Steel tolerates 8.8× more deflection than wood before failure. But it costs 9.6× more per meter. The optimal design uses wood for low-stress members (like short verticals near supports) and steel only in the high-stress members at mid-span.'},
+  {id:3,title:'Lesson 4: Tension vs Compression',
+   concept:'In a truss, members either pull apart (tension) or get squeezed (compression). Cables only work in tension. Identifying member modes lets you choose the right material for each.',
+   goal:'Build any truss and enable the Force Diagram during testing. Identify at least one tension and one compression member.',
+   hint:'Click "Force Diagram" in Test Tools during your test. Blue arrows = tension (pulling apart). Orange = compression (squeezing). In a Pratt truss: top chord = compression, bottom chord = tension.',
+   check:()=>forceOverlay&&simBeams.some(b=>b.tension&&!b.broken)&&simBeams.some(b=>!b.tension&&!b.broken),
+   explain:'This is the foundation of truss design: diagonals in a Pratt truss carry tension (cable material works!), verticals carry compression (needs stiffer material). Howe trusses reverse this. Knowing which members carry which load type is what separates engineered structures from guesswork.'},
+];
+let activeLessonId=null;
+
+function startLesson(id){
+  const lesson=LESSONS[id];if(!lesson)return;
+  activeLessonId=id;
+  const el=document.getElementById('lesson-panel');if(!el)return;
+  document.getElementById('lesson-title').textContent=lesson.title;
+  document.getElementById('lesson-concept').textContent=lesson.concept;
+  document.getElementById('lesson-goal').textContent='🎯 '+lesson.goal;
+  document.getElementById('lesson-hint').textContent='💡 '+lesson.hint;
+  document.getElementById('lesson-explain').style.display='none';
+  document.getElementById('lesson-explain-text').textContent='';
+  el.style.display='block';
+  resetGame();
+  flashMessage('Lesson started — '+lesson.goal);
+}
+function checkLessonComplete(){
+  if(activeLessonId===null)return;
+  const lesson=LESSONS[activeLessonId];
+  if(lesson.check()){
+    document.getElementById('lesson-explain').style.display='block';
+    document.getElementById('lesson-explain-text').textContent=lesson.explain;
+    flashMessage('✓ Lesson '+(activeLessonId+1)+' complete! Read the explanation below.');
+    if(activeLessonId<LESSONS.length-1){
+      document.getElementById('lesson-next').style.display='block';
+    }
+  }
+}
+document.getElementById('lesson-next')?.addEventListener('click',()=>{
+  if(activeLessonId<LESSONS.length-1)startLesson(activeLessonId+1);
+});
+document.getElementById('lesson-close')?.addEventListener('click',()=>{
+  document.getElementById('lesson-panel').style.display='none';activeLessonId=null;
+});
+document.querySelectorAll('.lesson-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>startLesson(parseInt(btn.dataset.lesson)));
+});
+// Hook into simulation step to check lesson completion
+const _origStepV=stepVehicles;
+
+// ============================================================
+// WHY DID IT FAIL?
+// ============================================================
+function analyzeFailure(sb){
+  const sja=simJoints[sb.ai],sjb=simJoints[sb.bi];
+  const midX=(sja.x+sjb.x)/2;
+  const span=CR()-CL();
+  const relPos=(midX-CL())/span;
+  const position=relPos<.25?'near the left support':relPos>.75?'near the right support':'at mid-span';
+  const ang=Math.abs(Math.atan2(sjb.y-sja.y,sjb.x-sja.x)*180/Math.PI);
+  const memberType=ang<20?'horizontal chord':ang>70?'vertical member':'diagonal brace';
+  const mode=sb.tension?'tension':'compression';
+  const mat=sb.material.name;
+  const msgs={
+    'horizontal chord':{tension:`The bottom chord ${position} failed in tension — it was being pulled apart. Common when there's no diagonal support at mid-span. Fix: add more diagonals, increase depth, or upgrade to steel/carbon fiber.`,compression:`The top chord ${position} failed in compression — it was being squeezed. Common with heavy downward loads. Fix: shorten unsupported sections, add verticals, or use a stiffer material.`},
+    'diagonal brace':{tension:`A diagonal ${position} failed in tension — it was being pulled. You could use cable material here since it's already in tension. Fix: add a second parallel diagonal or use stronger material.`,compression:`A diagonal ${position} failed in compression — it was being squeezed. Cables won't work here; you need steel or concrete. Fix: shorten the diagonal (add intermediate joints) or reinforce the member.`},
+    'vertical member':{tension:`A vertical member ${position} failed in tension — it's being stretched downward. This often happens in suspension systems where hangers pull upward. Fix: add lateral bracing or use stronger material.`,compression:`A vertical member ${position} failed in compression — it's being crushed. This is a column buckling scenario. Fix: add lateral support or increase the section.`},
+  };
+  return {position,memberType,mode,mat,msg:msgs[memberType]?.[mode]||'The member exceeded its deflection limit. Try a stronger material or add more support near this location.'};
+}
+function showFailureAnalysis(sb){
+  if(!sb)return;
+  const a=analyzeFailure(sb);
+  const el=document.getElementById('failure-analysis');if(!el)return;
+  document.getElementById('fa-member').textContent=`${a.mat} ${a.memberType} — ${a.mode}`;
+  document.getElementById('fa-msg').textContent=a.msg;
+  el.style.display='block';
+}
+document.getElementById('fa-close')?.addEventListener('click',()=>{document.getElementById('failure-analysis').style.display='none';});
+
+// ============================================================
+// QUIZ MODE
+// ============================================================
+let quizAnswers=[];
+function startQuiz(){
+  if(!simBeams.length){flashMessage('Run a simulation first.');return;}
+  const tensionCount=simBeams.filter(b=>b.tension&&!b.broken).length;
+  const compCount=simBeams.filter(b=>!b.tension&&!b.broken).length;
+  const dominant=tensionCount>compCount?'tension':'compression';
+  const peakMat=simBeams.reduce((m,b)=>b.stress>m.stress?b:m,simBeams[0])?.material?.name||'Steel';
+  const broken=simBeams.filter(b=>b.broken).length;
+  const qs=[
+    {q:`Most non-broken beams in your bridge are in…`,opts:['Tension (being pulled)','Compression (being squeezed)','Equal mix'],correct:dominant==='tension'?0:1,explain:`You had ${tensionCount} tension members and ${compCount} compression members. ${dominant==='tension'?'Tension is dominant — your bridge is hanging load downward through its bottom chord.':'Compression is dominant — your top chord is taking most of the compressive load.'}`},
+    {q:`Which material would handle 2× more load before breaking?`,opts:['Steel (sag limit: 22px)','Concrete (sag limit: 9px)','Wood (sag limit: 2.5px)'],correct:0,explain:'Steel tolerates 22px of joint sag before failing — 8.8× more than wood (2.5px) and 2.4× more than concrete (9px). For heavily loaded spans, steel is the only practical choice.'},
+    {q:`${broken} beam(s) failed in your test. The best structural fix is…`,opts:['Use stronger material everywhere','Add diagonal bracing near failed members','Make all beams thicker'],correct:1,explain:'Failure usually indicates missing triangulation, not just weak material. Adding diagonals near failed members converts bending stress into axial force, which all materials handle far better. Upgrading material blindly costs much more for less improvement.'},
+  ];
+  quizAnswers=new Array(qs.length).fill(null);
+  const panel=document.getElementById('quiz-panel');if(!panel)return;
+  panel.style.display='block';
+  panel.innerHTML='<div class="quiz-title">🧠 Quick Quiz</div>'+qs.map((q,i)=>`
+    <div class="quiz-q" id="qq-${i}">
+      <div class="quiz-question">Q${i+1}: ${q.q}</div>
+      ${q.opts.map((o,j)=>`<button class="quiz-opt" onclick="answerQuiz(${i},${j},${q.correct},'${q.explain.replace(/'/g,"\\'")}',this)">${o}</button>`).join('')}
+      <div class="quiz-explain" id="qe-${i}" style="display:none">${q.explain}</div>
+    </div>`).join('')+'<button class="quiz-close" onclick="closeQuiz()">Close Quiz</button>';
+}
+function answerQuiz(qi,chosen,correct,explain,btn){
+  const opts=document.querySelectorAll(`#qq-${qi} .quiz-opt`);
+  opts.forEach((o,i)=>{o.disabled=true;if(i===correct)o.classList.add('correct');else if(i===chosen&&chosen!==correct)o.classList.add('wrong');});
+  document.getElementById(`qe-${qi}`).style.display='block';
+  quizAnswers[qi]=chosen===correct;
+}
+function closeQuiz(){const p=document.getElementById('quiz-panel');if(p)p.style.display='none';}
+document.getElementById('btn-quiz')?.addEventListener('click',startQuiz);
