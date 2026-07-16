@@ -24,7 +24,9 @@
       <button class="btn-secondary" id="btn-undo">↩ Undo</button>
       <button class="btn-secondary" id="btn-reset">↺ Reset</button>
       <button class="btn-secondary" id="btn-share">🔗 Share</button>
-      <a href="about.html" target="_blank" class="btn-secondary" style="text-decoration:none;display:flex;align-items:center;">📖 About</a>
+      <button class="btn-secondary" id="btn-shortcuts">? Keys</button>
+      <a href="about.html" target="_blank" class="btn-secondary" style="text-decoration:none;display:flex;align-items:center;">📖 Docs</a>
+      <a href="landing.html" class="btn-secondary" style="text-decoration:none;display:flex;align-items:center;">🏠</a>
     </div>
   </header>
   <div class="level-bar">
@@ -51,6 +53,13 @@
         <button class="tool-btn" id="btn-night">🌙 Night Mode</button>
       </div>
 
+      <div class="tool-section"><h3>📚 Guided Lessons</h3>
+        <button class="tool-btn lesson-btn" data-lesson="0">1: Why Beams Fail</button>
+        <button class="tool-btn lesson-btn" data-lesson="1">2: Triangle Strength</button>
+        <button class="tool-btn lesson-btn" data-lesson="2">3: Material Choice</button>
+        <button class="tool-btn lesson-btn" data-lesson="3">4: Tension vs Compression</button>
+      </div>
+
       <div class="tool-section"><h3>Templates</h3>
         <button class="tool-btn template-btn" data-template="simple">━ Simple Beam</button>
         <button class="tool-btn template-btn" data-template="pratt">╫ Pratt Truss</button>
@@ -62,6 +71,7 @@
       <div class="tool-section"><h3>Test Tools</h3>
         <button class="tool-btn" id="btn-slow">🐢 Slow Motion</button>
         <button class="tool-btn" id="btn-force-overlay">⟷ Force Diagram</button>
+        <button class="tool-btn" id="btn-quiz">🧠 Take Quiz</button>
         <button class="tool-btn" id="btn-wind">💨 Wind Burst</button>
         <button class="tool-btn" id="btn-quake">🌋 Earthquake</button>
         <button class="tool-btn" id="btn-rain">🌧 Rain Storm</button>
@@ -147,6 +157,57 @@
   <span class="ach-icon"></span>
   <div><div class="ach-name"></div><div class="ach-desc"></div></div>
 </div>
+
+<!-- Shortcuts Modal -->
+<div id="shortcuts-modal" class="shortcuts-modal">
+  <div class="shortcuts-card">
+    <h2>⌨️ Keyboard Shortcuts</h2>
+    <div class="shortcut-grid">
+      <div class="shortcut-row"><span class="sc-key">Ctrl+Z</span><span class="sc-action">Undo last action</span></div>
+      <div class="shortcut-row"><span class="sc-key">S</span><span class="sc-action">Symmetry mode</span></div>
+      <div class="shortcut-row"><span class="sc-key">M</span><span class="sc-action">Slow motion</span></div>
+      <div class="shortcut-row"><span class="sc-key">N</span><span class="sc-action">Night mode</span></div>
+      <div class="shortcut-row"><span class="sc-key">D</span><span class="sc-action">Delete mode</span></div>
+      <div class="shortcut-row"><span class="sc-key">R</span><span class="sc-action">Replay pause/play</span></div>
+      <div class="shortcut-row"><span class="sc-key">?</span><span class="sc-action">This shortcut list</span></div>
+      <div class="shortcut-row"><span class="sc-key">Esc</span><span class="sc-action">Reset zoom / dismiss</span></div>
+      <div class="shortcut-row"><span class="sc-key">Scroll</span><span class="sc-action">Zoom in/out</span></div>
+      <div class="shortcut-row"><span class="sc-key">Pinch</span><span class="sc-action">Zoom (touch)</span></div>
+    </div>
+    <button class="shortcuts-close-btn" id="shortcuts-close">Close</button>
+  </div>
+</div>
+
+<!-- Lesson Panel -->
+<div id="lesson-panel">
+  <div class="lesson-header">
+    <div id="lesson-title">Lesson</div>
+    <button id="lesson-close">✕</button>
+  </div>
+  <p class="lesson-concept" id="lesson-concept"></p>
+  <div class="lesson-goal-box" id="lesson-goal"></div>
+  <div class="lesson-hint-box" id="lesson-hint"></div>
+  <div id="lesson-explain">
+    <strong style="font-size:13px;color:#2e7d32;">✓ Complete! Engineering explanation:</strong>
+    <p id="lesson-explain-text"></p>
+  </div>
+  <div class="lesson-btns">
+    <button id="lesson-next">Next Lesson →</button>
+  </div>
+</div>
+
+<!-- Failure Analysis -->
+<div id="failure-analysis">
+  <button id="fa-close">✕</button>
+  <div id="fa-member">Member type</div>
+  <div id="fa-msg">Analysis</div>
+</div>
+
+<!-- Quiz Panel -->
+<div id="quiz-panel"></div>
+
+<!-- Visit counter (hidden, just tracking) -->
+<div id="visit-count" style="display:none"></div>
 
 <script src="script.js"></script>
 </body>
