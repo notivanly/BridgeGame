@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Load Limit — Engineering Methodology</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap');
+  :root { --ink:#16212c; --amber:#e8a33d; --blue:#0a3158; --light:#f2ecdd; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Archivo',sans-serif;color:var(--ink);background:#fff;line-height:1.7;}
+  header{background:var(--blue);color:#fff;padding:40px 5%;border-bottom:4px solid var(--amber);}
+  header h1{font-size:32px;font-weight:900;letter-spacing:.5px;}
+  header h1 span{color:var(--amber);}
+  header p{color:#8fb0cc;margin-top:8px;font-size:15px;}
+  nav{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;}
+  nav a{color:var(--amber);text-decoration:none;font-size:13px;padding:6px 14px;border:1px solid #2a5070;border-radius:20px;}
+  nav a:hover{background:var(--amber);color:var(--blue);}
+  main{max-width:820px;margin:0 auto;padding:48px 5%;}
+  section{margin-bottom:56px;}
+  h2{font-size:24px;font-weight:900;color:var(--blue);margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid var(--amber);}
+  h3{font-size:17px;font-weight:700;margin:24px 0 10px;color:var(--blue);}
+  p{margin-bottom:14px;font-size:15px;}
+  .eq{font-family:'IBM Plex Mono',monospace;background:var(--light);padding:16px 20px;border-radius:8px;border-left:4px solid var(--amber);margin:16px 0;font-size:13px;line-height:2;}
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:16px;}
+  .card{background:var(--light);border-radius:10px;padding:20px;border-top:3px solid var(--amber);}
+  .card h4{font-size:14px;font-weight:700;margin-bottom:8px;}
+  .card p{font-size:13px;color:#4a4334;margin:0;}
+  .mat-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px;}
+  .mat-table th{background:var(--blue);color:#fff;padding:10px 14px;text-align:left;}
+  .mat-table td{padding:9px 14px;border-bottom:1px solid #e3ddcb;}
+  .mat-table tr:nth-child(even) td{background:#faf8f3;}
+  .limitation{background:#fff5f5;border-left:4px solid #d4483a;padding:14px 18px;border-radius:0 8px 8px 0;margin:12px 0;font-size:14px;}
+  .back-btn{display:inline-block;background:var(--amber);color:var(--blue);font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none;margin-bottom:32px;}
+  footer{background:var(--blue);color:#8fb0cc;text-align:center;padding:24px;font-size:13px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>LOAD <span>LIMIT</span> — Engineering Methodology</h1>
+  <p>Technical documentation for the Bridge Engineering Lab simulation</p>
+  <nav>
+    <a href="index.html">← Back to Game</a>
+    <a href="#physics">Physics Model</a>
+    <a href="#materials">Materials</a>
+    <a href="#failure">Failure Criteria</a>
+    <a href="#vehicles">Load Model</a>
+    <a href="#limitations">Limitations</a>
+    <a href="#references">References</a>
+  </nav>
+</header>
+
+<main>
+  <a class="back-btn" href="index.html">← Play the Game</a>
+
+  <section id="overview">
+    <h2>Overview</h2>
+    <p>Load Limit is a browser-based structural engineering simulator that models 2D truss bridge behavior under dynamic vehicular loading. The simulation uses <strong>Position-Based Dynamics (PBD)</strong> with Verlet integration to compute joint displacements, and an iterative constraint relaxation solver to maintain structural connectivity.</p>
+    <p>The goal is to provide an interactive environment where users explore fundamental structural engineering concepts — load paths, material selection, truss geometry, resonance, and failure modes — without requiring engineering prerequisites.</p>
+    <div class="card-grid">
+      <div class="card"><h4>Simulation Method</h4><p>Position-Based Dynamics (Verlet integration) with 8 constraint relaxation passes per frame at 60 fps.</p></div>
+      <div class="card"><h4>Failure Detection</h4><p>Sag-based: joint vertical displacement from settled baseline exceeds material-specific threshold.</p></div>
+      <div class="card"><h4>Load Model</h4><p>Vehicle weight distributed to nearby structural nodes via linear proximity weighting.</p></div>
+      <div class="card"><h4>Physics Scale</h4><p>1 pixel = 0.05 meters. Bridge spans range from 16m (Narrow Gorge) to 28m (Grand Canyon).</p></div>
+    </div>
+  </section>
+
+  <section id="physics">
+    <h2>Physics Model</h2>
+    <h3>Verlet Integration</h3>
+    <p>Each free joint in the structure is simulated as a point mass. Position is updated using Verlet integration, which implicitly encodes velocity as the difference between current and previous position:</p>
+    <div class="eq">
+      x(t+Δt) = x(t) + (x(t) − x(t−Δt)) · d + F · Δt²<br>
+      <br>
+      where:<br>
+      &nbsp;&nbsp;x(t)       = current position<br>
+      &nbsp;&nbsp;x(t−Δt)    = previous position (velocity is implicit)<br>
+      &nbsp;&nbsp;d          = damping coefficient (0.96 per frame)<br>
+      &nbsp;&nbsp;F          = net external force (gravity + vehicle load + wind)<br>
+      &nbsp;&nbsp;Δt         = 1/60 s (one frame at 60fps)
+    </div>
+    <p>This approach is numerically stable for constraint-heavy systems and naturally conserves energy without explicit momentum tracking.</p>
+
+    <h3>Constraint Relaxation</h3>
+    <p>Structural beams are modeled as distance constraints between pairs of joints. Each frame, the solver runs 8 iterations of constraint projection — moving joint pairs toward their rest-length distance:</p>
+    <div class="eq">
+      correction = (|p_B − p_A| − L₀) / |p_B − p_A| · 0.5<br>
+      <br>
+      p_A += correction · (p_B − p_A)    [if A is free]<br>
+      p_B -= correction · (p_B − p_A)    [if B is free]<br>
+      <br>
+      where L₀ = rest length of the beam segment
+    </div>
+    <p>Fixed anchor joints are immovable (infinite mass approximation). Free joints receive equal correction from both ends unless one is fixed, in which case the free joint absorbs the full correction.</p>
+
+    <h3>Beam Subdivision</h3>
+    <p>Each user-drawn beam is subdivided into segments of approximately 38px (≈1.9m) with free intermediate joints. This allows beams to exhibit realistic bending and sag under distributed load, rather than behaving as perfectly rigid rods.</p>
+
+    <h3>Resonance Model</h3>
+    <p>A resonance accumulator increases as vehicles remain on the bridge span. Above a threshold, a sinusoidal horizontal forcing function is applied to all free joints, simulating the self-excited oscillation mechanism that caused the 1940 Tacoma Narrows Bridge collapse:</p>
+    <div class="eq">
+      F_resonance(t) = R · A · sin(ω · t)<br>
+      <br>
+      where R = resonance level (0–1), A = 0.25px, ω = 0.12 rad/frame<br>
+      Failure stress is amplified by factor (1 + R · 0.6)
+    </div>
+  </section>
+
+  <section id="materials">
+    <h2>Materials</h2>
+    <p>Five structural materials are available, each with distinct mechanical properties. Cost-per-meter values are loosely based on real-world construction cost ratios, scaled for gameplay.</p>
+    <table class="mat-table">
+      <thead><tr><th>Material</th><th>Cost/m</th><th>Sag Limit</th><th>Thickness</th><th>Behavior</th></tr></thead>
+      <tbody>
+        <tr><td>Wood</td><td>$14</td><td>2.5 px</td><td>8 px</td><td>Compression & tension; brittle failure</td></tr>
+        <tr><td>Concrete</td><td>$68</td><td>9 px</td><td>11 px</td><td>High mass, moderate strength</td></tr>
+        <tr><td>Steel</td><td>$135</td><td>22 px</td><td>7 px</td><td>High strength-to-weight; standard for trusses</td></tr>
+        <tr><td>Cable</td><td>$45</td><td>35 px</td><td>3 px</td><td><em>Tension only</em> — compression constraint disabled</td></tr>
+        <tr><td>Carbon Fiber</td><td>$400</td><td>32 px</td><td>5 px</td><td>Very high strength, very low mass</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:13px;color:#666;">Cable material: when a constraint is in compression (current length &lt; rest length), the correction step is skipped. This correctly models tension-only members that go slack under compressive load — the physical behavior of real suspension cables.</p>
+  </section>
+
+  <section id="failure">
+    <h2>Failure Criteria</h2>
+    <p>A beam segment fails when the maximum vertical sag of its endpoint joints (measured from the post-settlement baseline) exceeds the material's sag limit:</p>
+    <div class="eq">
+      sag_A = max(0, y_A(t) − y_A(settled))<br>
+      sag_B = max(0, y_B(t) − y_B(settled))<br>
+      <br>
+      failure if: max(sag_A, sag_B) · resonanceFactor > sagLimit_material<br>
+      <br>
+      where resonanceFactor = 1 + R · 0.6
+    </div>
+    <p>Sag from the settlement baseline (rather than from zero) is used so that the natural deflection of the structure under its own weight does not trigger false failures — only load-induced deflection beyond the resting state is penalized.</p>
+    <p>Rain reduces effective sag limits by 15% (modeling reduced material strength under wet conditions). Foundation cracking is tracked separately as accumulated anchor load exceeding a threshold.</p>
+    <h3>Tension vs Compression</h3>
+    <p>Beam mode is tracked each frame: if the current inter-joint distance exceeds rest length, the member is in <strong>tension</strong> (being pulled apart). If shorter, it is in <strong>compression</strong> (being squeezed). The Force Diagram overlay renders these states with directional arrows. Identifying which members carry which load type is fundamental to efficient truss design — tension members can be cables, compression members require stiffer materials.</p>
+  </section>
+
+  <section id="vehicles">
+    <h2>Load Model</h2>
+    <p>Vehicle weight is applied as downward impulse to nearby structural joints each frame. The force is distributed proportionally by horizontal proximity:</p>
+    <div class="eq">
+      proximity_i = 1 − |x_joint − x_vehicle| / (vehicle_width · 0.75)<br>
+      <br>
+      F_i = F_vehicle · (proximity_i / Σ proximity_j)<br>
+      <br>
+      where the sum is over all free joints within the vehicle's footprint
+    </div>
+    <p>This approximates a distributed load model — heavier, wider vehicles (train, tank) spread load over more joints than narrow vehicles (bicycle, sedan). Vehicle Y-position follows the bridge surface, detected by finding the nearest non-cable beam segment above the vehicle's horizontal position.</p>
+    <table class="mat-table">
+      <thead><tr><th>Vehicle</th><th>Mass</th><th>Force/frame</th><th>Width</th><th>Speed</th></tr></thead>
+      <tbody>
+        <tr><td>🚲 Bicycle</td><td>15 kg</td><td>0.02</td><td>22 px</td><td>4.5 px/frame</td></tr>
+        <tr><td>🚗 Sedan</td><td>1,400 kg</td><td>0.8</td><td>46 px</td><td>2.8 px/frame</td></tr>
+        <tr><td>🚐 Van</td><td>2,800 kg</td><td>1.6</td><td>56 px</td><td>2.5 px/frame</td></tr>
+        <tr><td>🚚 Box Truck</td><td>9,000 kg</td><td>4.5</td><td>76 px</td><td>2.1 px/frame</td></tr>
+        <tr><td>🚌 City Bus</td><td>12,000 kg</td><td>6.0</td><td>90 px</td><td>1.9 px/frame</td></tr>
+        <tr><td>🚛 Semi</td><td>18,000 kg</td><td>9.0</td><td>104 px</td><td>1.7 px/frame</td></tr>
+        <tr><td>🪖 Tank</td><td>60,000 kg</td><td>28.0</td><td>120 px</td><td>1.2 px/frame</td></tr>
+        <tr><td>🚂 Train</td><td>200,000 kg</td><td>85.0</td><td>200 px</td><td>1.0 px/frame</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="limitations">
+    <h2>Known Limitations</h2>
+    <div class="limitation">⬛ <strong>2D planar analysis only.</strong> Out-of-plane effects, lateral buckling, and torsion are not modeled. Real bridges require 3D analysis.</div>
+    <div class="limitation">⬛ <strong>Simplified material model.</strong> No fatigue, plastic deformation, or creep. Real materials degrade over time and fail differently under cyclic loading.</div>
+    <div class="limitation">⬛ <strong>Approximated joint masses.</strong> Node mass is computed from attached beam geometry rather than from explicit member cross-sections.</div>
+    <div class="limitation">⬛ <strong>Simplified dynamics.</strong> The constraint solver is not a true finite element model. No modal analysis, no natural frequency computation, no damping coefficients.</div>
+    <div class="limitation">⬛ <strong>Linear proximity load distribution.</strong> Real bridge decks distribute loads through complex plate behavior, not simple horizontal proximity weighting.</div>
+    <div class="limitation">⬛ <strong>No soil-structure interaction.</strong> Foundation conditions and soil deformation are not modeled — anchors are treated as perfectly rigid.</div>
+  </section>
+
+  <section id="references">
+    <h2>References & Further Reading</h2>
+    <h3>Structural Engineering Concepts</h3>
+    <p>• Hibbeler, R.C. (2018). <em>Structural Analysis</em> (10th ed.). Pearson.<br>
+    • Gere, J.M. & Goodno, B.J. (2018). <em>Mechanics of Materials</em> (9th ed.). Cengage.<br>
+    • Irvine, T. (2004). <em>An Introduction to the Vibration Response of Structures</em>. Vibrationdata.</p>
+    <h3>Simulation Methodology</h3>
+    <p>• Müller, M. et al. (2007). <em>Position Based Dynamics</em>. Journal of Visual Communication and Image Representation.<br>
+    • Verlet, L. (1967). <em>Computer 'Experiments' on Classical Fluids</em>. Physical Review, 159(1).<br>
+    • Jakobsen, T. (2001). <em>Advanced Character Physics</em>. Game Developers Conference Proceedings.</p>
+    <h3>Historic Bridge Failures</h3>
+    <p>• Scott, R. (2001). <em>In the Wake of Tacoma: Suspension Bridges and the Quest for Aerodynamic Stability</em>. ASCE Press.<br>
+    • The Tacoma Narrows Bridge collapse (1940) demonstrated the danger of aerodynamic resonance — the phenomenon this simulation models in simplified form.</p>
+  </section>
+</main>
+
+<footer>
+  Load Limit Bridge Engineering Lab — Open Source Educational Tool
+  &nbsp;|&nbsp; <a href="index.html" style="color:var(--amber)">Play the Game</a>
+</footer>
+</body>
+</html>
