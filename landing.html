@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Load Limit — Bridge Engineering Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#071828;--blue2:#0a3158;--amber:#e8a33d;--paper:#f2ecdd;--ink:#16212c;--success:#49b07d;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Archivo',sans-serif;background:var(--blue);color:var(--paper);overflow-x:hidden;}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:18px 5%;border-bottom:1px solid rgba(255,255,255,.08);}
+.nav-logo{font-weight:900;font-size:20px;letter-spacing:.5px;}
+.nav-logo span{color:var(--amber);}
+.nav-links{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.nav-links a{color:#8fb0cc;text-decoration:none;font-size:13px;padding:6px 14px;border-radius:20px;border:1px solid transparent;transition:all .15s;}
+.nav-links a:hover{border-color:#2a5070;color:var(--paper);}
+.nav-cta{background:var(--amber)!important;color:var(--ink)!important;font-weight:700!important;border:none!important;}
+
+/* HERO */
+.hero{text-align:center;padding:80px 5% 60px;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%, rgba(232,163,61,.12) 0%, transparent 70%);}
+.hero-tag{display:inline-block;background:rgba(232,163,61,.15);color:var(--amber);font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:6px 16px;border-radius:20px;border:1px solid rgba(232,163,61,.3);margin-bottom:24px;}
+.hero h1{font-size:clamp(38px,6vw,72px);font-weight:900;line-height:1.1;margin-bottom:20px;}
+.hero h1 span{color:var(--amber);}
+.hero p{font-size:clamp(15px,2vw,19px);color:#8fb0cc;max-width:580px;margin:0 auto 36px;line-height:1.6;}
+.hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+.btn-primary{background:var(--amber);color:var(--ink);font-weight:900;font-size:16px;padding:14px 32px;border-radius:8px;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:transform .1s,opacity .1s;}
+.btn-primary:hover{transform:translateY(-1px);}
+.btn-secondary{background:transparent;color:var(--paper);font-weight:700;font-size:15px;padding:13px 28px;border-radius:8px;text-decoration:none;border:1.5px solid #2a5070;display:inline-flex;align-items:center;gap:8px;transition:border-color .15s;}
+.btn-secondary:hover{border-color:var(--amber);}
+
+/* PREVIEW CANVAS (fake screenshot) */
+.preview-wrap{max-width:900px;margin:48px auto 0;position:relative;}
+.preview-img{width:100%;border-radius:12px;border:2px solid #1c4a73;box-shadow:0 20px 60px rgba(0,0,0,.5);background:var(--blue2);aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.preview-inner{color:#2a5070;font-size:14px;font-family:'IBM Plex Mono',monospace;}
+.preview-badge{position:absolute;top:-12px;right:24px;background:var(--success);color:#fff;font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;}
+
+/* STATS */
+.stats{display:flex;gap:0;justify-content:center;margin:64px 5% 0;border:1px solid #1c4a73;border-radius:12px;overflow:hidden;flex-wrap:wrap;}
+.stat-item{flex:1;min-width:160px;padding:28px 20px;text-align:center;border-right:1px solid #1c4a73;}
+.stat-item:last-child{border-right:none;}
+.stat-num{font-size:32px;font-weight:900;color:var(--amber);font-family:'IBM Plex Mono',monospace;}
+.stat-label{font-size:12px;color:#8fb0cc;margin-top:4px;letter-spacing:.5px;}
+
+/* FEATURES */
+.features{padding:80px 5%;max-width:1100px;margin:0 auto;}
+.section-label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--amber);margin-bottom:12px;}
+.section-title{font-size:clamp(24px,3vw,36px);font-weight:900;margin-bottom:48px;}
+.feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;}
+.feature-card{background:rgba(255,255,255,.04);border:1px solid #1c4a73;border-radius:12px;padding:24px;transition:border-color .15s;}
+.feature-card:hover{border-color:var(--amber);}
+.feature-icon{font-size:28px;margin-bottom:14px;}
+.feature-card h3{font-size:17px;font-weight:700;margin-bottom:8px;}
+.feature-card p{font-size:13px;color:#8fb0cc;line-height:1.55;}
+
+/* HOW IT WORKS */
+.how{background:rgba(255,255,255,.025);padding:80px 5%;border-top:1px solid #1c4a73;border-bottom:1px solid #1c4a73;}
+.how-inner{max-width:900px;margin:0 auto;}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;margin-top:40px;}
+.step{text-align:center;}
+.step-num{width:44px;height:44px;border-radius:50%;background:var(--amber);color:var(--ink);font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
+.step h4{font-size:15px;font-weight:700;margin-bottom:6px;}
+.step p{font-size:13px;color:#8fb0cc;line-height:1.5;}
+
+/* MATERIALS */
+.materials-section{padding:80px 5%;max-width:900px;margin:0 auto;}
+.mat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:32px;}
+.mat-card{background:rgba(255,255,255,.05);border-radius:10px;padding:18px;border-top:3px solid;}
+.mat-card h4{font-size:14px;font-weight:700;margin-bottom:4px;}
+.mat-card .mat-price{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8fb0cc;margin-bottom:8px;}
+.mat-card .mat-note{font-size:11px;color:#8fb0cc;line-height:1.4;}
+
+/* VEHICLES */
+.vehicles-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px;}
+.veh{background:rgba(255,255,255,.05);border-radius:8px;padding:12px 16px;text-align:center;flex:1;min-width:90px;}
+.veh-emoji{font-size:22px;}
+.veh-label{font-size:11px;font-weight:700;margin-top:4px;}
+.veh-kg{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8fb0cc;}
+
+/* TESTIMONIALS */
+.testimonials{padding:80px 5%;background:rgba(255,255,255,.025);border-top:1px solid #1c4a73;}
+.test-inner{max-width:860px;margin:0 auto;}
+.test-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:36px;}
+.test-card{background:rgba(255,255,255,.05);border-radius:10px;padding:22px;border-left:3px solid var(--amber);}
+.test-quote{font-size:14px;line-height:1.6;color:var(--paper);margin-bottom:14px;}
+.test-author{font-size:12px;color:var(--amber);font-weight:700;}
+.test-role{font-size:11px;color:#8fb0cc;}
+
+/* CTA */
+.cta{text-align:center;padding:80px 5%;}
+.cta h2{font-size:clamp(24px,3vw,40px);font-weight:900;margin-bottom:16px;}
+.cta p{color:#8fb0cc;margin-bottom:32px;font-size:15px;}
+
+/* FOOTER */
+footer{background:rgba(0,0,0,.3);border-top:1px solid #1c4a73;padding:32px 5%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.footer-logo{font-weight:900;font-size:16px;}
+.footer-logo span{color:var(--amber);}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap;}
+.footer-links a{color:#8fb0cc;text-decoration:none;font-size:13px;}
+.footer-links a:hover{color:var(--amber);}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">LOAD <span>LIMIT</span></div>
+  <div class="nav-links">
+    <a href="about.html">Engineering Docs</a>
+    <a href="changelog.html">Changelog</a>
+    <a href="feedback.html">Feedback</a>
+    <a href="index.html" class="nav-cta">▶ Play Now</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-tag">Open Source · Browser-Based · Free</div>
+  <h1>Build Bridges.<br><span>Test Them to Failure.</span></h1>
+  <p>A structural engineering simulator where you design real truss bridges and stress-test them with increasingly heavy vehicles — from a bicycle to a 200-ton train.</p>
+  <div class="hero-btns">
+    <a href="index.html" class="btn-primary">▶ Play Now — Free</a>
+    <a href="about.html" class="btn-secondary">📖 Engineering Docs</a>
+  </div>
+  <div class="preview-wrap">
+    <div class="preview-badge">✓ No download · Works in browser</div>
+    <div class="preview-img">
+      <div class="preview-inner">[ Bridge canvas loads here — click Play Now above ]</div>
+    </div>
+  </div>
+</section>
+
+<div class="stats">
+  <div class="stat-item"><div class="stat-num">5</div><div class="stat-label">Materials</div></div>
+  <div class="stat-item"><div class="stat-num">8</div><div class="stat-label">Vehicle Types</div></div>
+  <div class="stat-item"><div class="stat-num">5</div><div class="stat-label">Levels</div></div>
+  <div class="stat-item"><div class="stat-num">15</div><div class="stat-label">Challenges</div></div>
+  <div class="stat-item"><div class="stat-num">60fps</div><div class="stat-label">Physics Sim</div></div>
+</div>
+
+<section class="features">
+  <div class="section-label">What makes it different</div>
+  <div class="section-title">Real engineering. Real physics.</div>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">⚛️</div>
+      <h3>Position-Based Dynamics</h3>
+      <p>Verlet integration with iterative constraint relaxation — the same method used in game physics engines. Beams genuinely sag, bend, and fail under load.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⟷</div>
+      <h3>Tension vs Compression</h3>
+      <p>Every beam is tracked for its structural mode — blue = tension, orange = compression. Toggle the Force Diagram to see real load paths through your structure.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🌊</div>
+      <h3>Resonance Model</h3>
+      <p>Multiple vehicles cause oscillation that builds over time. Push it far enough and you'll witness a Tacoma Narrows–style resonance collapse.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📄</div>
+      <h3>Engineering Reports</h3>
+      <p>One click generates a printable technical report with material breakdown, stress analysis, cost efficiency, and structural notes — ready to submit.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>CSV Stress Export</h3>
+      <p>Export per-beam stress data as a spreadsheet after every test. Analyze results in Excel or Python for deeper insights.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎓</div>
+      <h3>Guided Lessons</h3>
+      <p>Four structured engineering lessons walk you through core concepts — from why beams sag, to truss geometry, to material selection.</p>
+    </div>
+  </div>
+</section>
+
+<section class="how">
+  <div class="how-inner">
+    <div class="section-label">How it works</div>
+    <div class="section-title">Build. Test. Analyze.</div>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><h4>Design</h4><p>Drag beams between anchor points. Use screws to add junction points anywhere along a beam.</p></div>
+      <div class="step"><div class="step-num">2</div><h4>Test</h4><p>Hit Test Bridge, then spawn vehicles. Watch stress colors build from neutral → amber → red → snap.</p></div>
+      <div class="step"><div class="step-num">3</div><h4>Analyze</h4><p>Click any beam to inspect it. Use Force Diagram to see tension/compression. Generate a full report.</p></div>
+      <div class="step"><div class="step-num">4</div><h4>Improve</h4><p>Replay the failure, identify weak points, rebuild. Compare two designs side by side.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="materials-section">
+  <div class="section-label">Materials</div>
+  <div class="section-title">Five structural materials, each with real tradeoffs.</div>
+  <div class="mat-cards">
+    <div class="mat-card" style="border-color:#c89a64"><h4>Wood</h4><div class="mat-price">$14/m</div><div class="mat-note">Cheap and light. Snaps quickly under load.</div></div>
+    <div class="mat-card" style="border-color:#b3b1a6"><h4>Concrete</h4><div class="mat-price">$68/m</div><div class="mat-note">Decent strength. Very heavy on long spans.</div></div>
+    <div class="mat-card" style="border-color:#a9bdce"><h4>Steel</h4><div class="mat-price">$135/m</div><div class="mat-note">Strongest standard material. Industry standard.</div></div>
+    <div class="mat-card" style="border-color:#f0c040"><h4>Cable</h4><div class="mat-price">$45/m</div><div class="mat-note">Tension only. Essential for suspension bridges.</div></div>
+    <div class="mat-card" style="border-color:#7a5cc0"><h4>Carbon</h4><div class="mat-price">$400/m</div><div class="mat-note">Ultra-strong, ultra-light. Extremely expensive.</div></div>
+  </div>
+  <div class="section-label" style="margin-top:48px">Vehicles</div>
+  <div class="vehicles-row">
+    <div class="veh"><div class="veh-emoji">🚲</div><div class="veh-label">Bicycle</div><div class="veh-kg">15 kg</div></div>
+    <div class="veh"><div class="veh-emoji">🚗</div><div class="veh-label">Sedan</div><div class="veh-kg">1,400 kg</div></div>
+    <div class="veh"><div class="veh-emoji">🚐</div><div class="veh-label">Van</div><div class="veh-kg">2,800 kg</div></div>
+    <div class="veh"><div class="veh-emoji">🚚</div><div class="veh-label">Box Truck</div><div class="veh-kg">9,000 kg</div></div>
+    <div class="veh"><div class="veh-emoji">🚌</div><div class="veh-label">City Bus</div><div class="veh-kg">12,000 kg</div></div>
+    <div class="veh"><div class="veh-emoji">🚛</div><div class="veh-label">Semi</div><div class="veh-kg">18,000 kg</div></div>
+    <div class="veh"><div class="veh-emoji">🪖</div><div class="veh-label">Tank</div><div class="veh-kg">60,000 kg</div></div>
+    <div class="veh"><div class="veh-emoji">🚂</div><div class="veh-label">Train</div><div class="veh-kg">200,000 kg</div></div>
+  </div>
+</section>
+
+<section class="testimonials">
+  <div class="test-inner">
+    <div class="section-label">Feedback</div>
+    <div class="section-title">What people are saying</div>
+    <div class="test-grid" id="testimonial-grid">
+      <div class="test-card"><div class="test-quote">"Finally understood why triangles matter in structures. Watched my beam bridge collapse then added diagonals and it held a semi — clicked immediately."</div><div class="test-author">Student</div><div class="test-role">High School Physics</div></div>
+      <div class="test-card"><div class="test-quote">"The tension/compression overlay is genuinely useful for teaching load paths. Better than any static diagram I've used."</div><div class="test-author">Teacher</div><div class="test-role">Civil Engineering Technology</div></div>
+      <div class="test-card"><div class="test-quote">"Impressive that this runs fully in the browser with no install. The resonance model is a nice touch — students always ask about Tacoma Narrows."</div><div class="test-author">Engineer</div><div class="test-role">Structural PE</div></div>
+    </div>
+    <p style="text-align:center;margin-top:24px;"><a href="feedback.html" style="color:var(--amber);font-weight:700;">Leave your own feedback →</a></p>
+  </div>
+</section>
+
+<section class="cta">
+  <h2>Ready to build?</h2>
+  <p>No download. No account. Works in any modern browser.</p>
+  <div class="hero-btns">
+    <a href="index.html" class="btn-primary">▶ Open the Lab</a>
+    <a href="about.html" class="btn-secondary">Read the Engineering Docs</a>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">LOAD <span>LIMIT</span></div>
+  <div class="footer-links">
+    <a href="index.html">Game</a>
+    <a href="about.html">Engineering Docs</a>
+    <a href="feedback.html">Feedback</a>
+    <a href="changelog.html">Changelog</a>
+    <a href="https://github.com/notivanly/BridgeGame" target="_blank">GitHub</a>
+  </div>
+</footer>
+
+<script>
+// Load recent feedback from localStorage and add to testimonials
+const saved = JSON.parse(localStorage.getItem('bridge_feedback') || '[]');
+if (saved.length > 0) {
+  const grid = document.getElementById('testimonial-grid');
+  saved.slice(-2).forEach(f => {
+    const card = document.createElement('div');
+    card.className = 'test-card';
+    card.style.borderColor = '#49b07d';
+    card.innerHTML = `<div class="test-quote">"${f.message}"</div><div class="test-author">${f.name}</div><div class="test-role">${f.role} · ${'⭐'.repeat(f.rating)}</div>`;
+    grid.appendChild(card);
+  });
+}
+</script>
+</body>
+</html>
