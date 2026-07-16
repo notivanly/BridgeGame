@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Changelog — Load Limit</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#071828;--blue2:#0a3158;--amber:#e8a33d;--paper:#f2ecdd;--ink:#16212c;--success:#49b07d;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Archivo',sans-serif;background:var(--blue);color:var(--paper);min-height:100vh;}
+nav{display:flex;align-items:center;justify-content:space-between;padding:16px 5%;border-bottom:1px solid rgba(255,255,255,.08);}
+.nav-logo{font-weight:900;font-size:18px;}.nav-logo span{color:var(--amber);}
+.nav-links{display:flex;gap:12px;}.nav-links a{color:#8fb0cc;text-decoration:none;font-size:13px;padding:5px 12px;border:1px solid transparent;border-radius:16px;}
+.nav-links a:hover{border-color:#2a5070;color:var(--paper);}
+.nav-links .play{background:var(--amber);color:var(--ink)!important;font-weight:700;}
+main{max-width:760px;margin:0 auto;padding:48px 5%;}
+h1{font-size:32px;font-weight:900;margin-bottom:8px;}h1 span{color:var(--amber);}
+.subtitle{color:#8fb0cc;margin-bottom:48px;font-size:15px;}
+.timeline{position:relative;padding-left:28px;}
+.timeline::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,var(--amber),#1c4a73);}
+.version{position:relative;margin-bottom:40px;}
+.version::before{content:'';position:absolute;left:-24px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--amber);border:2px solid var(--blue);}
+.version.minor::before{background:#2a5070;}
+.v-header{display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.v-num{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:var(--amber);}
+.version.minor .v-num{color:#8fb0cc;font-size:14px;}
+.v-name{font-size:16px;font-weight:700;}
+.v-date{font-size:12px;color:#5a7a94;font-family:'IBM Plex Mono',monospace;}
+.v-tag{font-size:11px;padding:3px 10px;border-radius:12px;font-weight:700;}
+.tag-major{background:rgba(232,163,61,.2);color:var(--amber);}
+.tag-feature{background:rgba(73,176,125,.15);color:var(--success);}
+.tag-fix{background:rgba(212,72,58,.15);color:#d4483a;}
+.changes{list-style:none;margin-left:4px;}
+.changes li{font-size:14px;color:#cfe3ee;padding:4px 0;display:flex;gap:10px;line-height:1.5;}
+.changes li::before{content:'→';color:#2a5070;flex-shrink:0;}
+.changes li strong{color:var(--paper);}
+.section-divider{color:#2a5070;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:8px 0 12px;}
+footer{text-align:center;padding:32px;color:#5a7a94;font-size:13px;border-top:1px solid #1c4a73;margin-top:32px;}
+footer a{color:var(--amber);text-decoration:none;}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-logo">LOAD <span>LIMIT</span></div>
+  <div class="nav-links">
+    <a href="landing.html">Home</a><a href="about.html">Docs</a><a href="feedback.html">Feedback</a>
+    <a href="index.html" class="play">▶ Play</a>
+  </div>
+</nav>
+<main>
+  <h1>Version <span>History</span></h1>
+  <p class="subtitle">A complete record of every feature added, bug fixed, and engineering concept implemented since the project started.</p>
+
+  <div class="timeline">
+
+    <div class="version">
+      <div class="v-header"><span class="v-num">v6.0</span><span class="v-name">Documentation & Educational Platform</span><span class="v-date">July 2025</span><span class="v-tag tag-major">MAJOR</span></div>
+      <div class="section-divider">New pages</div>
+      <ul class="changes">
+        <li><strong>Landing page</strong> — dedicated homepage with feature showcase, material/vehicle overview, and testimonials</li>
+        <li><strong>Feedback page</strong> — on-site guestbook with star ratings, role tags, filter by type, and sort by date/rating</li>
+        <li><strong>Changelog page</strong> — full version history showing sustained development</li>
+        <li><strong>README.md</strong> — complete GitHub project documentation with equations, methodology, and quick-start</li>
+      </ul>
+      <div class="section-divider">In-game additions</div>
+      <ul class="changes">
+        <li><strong>Guided lessons</strong> — 4 structured engineering lessons (beam failure, triangle strength, material selection, tension/compression)</li>
+        <li><strong>Why did it fail?</strong> — AI-style failure analysis explaining which member failed, its structural role, and how to fix it</li>
+        <li><strong>Quiz mode</strong> — 3 questions after each test asking about what just happened</li>
+        <li><strong>Keyboard shortcuts modal</strong> — press ? for a full shortcut reference overlay</li>
+        <li><strong>Night mode UI</strong> — sidebar panels now match canvas night mode when toggled</li>
+        <li><strong>Mobile layout</strong> — responsive panels, touch-optimized buttons</li>
+        <li><strong>Visit counter</strong> — tracks plays in localStorage</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="v-header"><span class="v-num">v5.0</span><span class="v-name">Physics & Content Overhaul</span><span class="v-date">July 2025</span><span class="v-tag tag-major">MAJOR</span></div>
+      <ul class="changes">
+        <li><strong>3 new vehicles</strong> — Bicycle (15kg), City Bus (12,000kg), Train (200,000kg)</li>
+        <li><strong>Carbon Fiber material</strong> — $400/m, ultra-light, ultra-strong</li>
+        <li><strong>Resonance system</strong> — Tacoma Narrows–style oscillation builds under traffic load</li>
+        <li><strong>Foundation cracking</strong> — overloaded anchor points develop visual crack lines</li>
+        <li><strong>Tension/compression display</strong> — blue tint for tension, orange for compression</li>
+        <li><strong>2 new levels</strong> — City Bridge (repair pre-built spans) and Quake Zone (auto-earthquakes)</li>
+        <li><strong>Achievement system</strong> — 14 achievements with pop-up toast notifications</li>
+        <li><strong>Replay mode</strong> — record and play back simulation frames</li>
+        <li><strong>Share bridge URL</strong> — encode design into a shareable link</li>
+        <li><strong>Per-material sound</strong> — wood groans, steel pings, carbon rings differently</li>
+        <li><strong>Mobile touch / pinch zoom</strong> — two-finger pinch supported</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="v-header"><span class="v-num">v4.0</span><span class="v-name">Engineering Tools Update</span><span class="v-date">July 2025</span><span class="v-tag tag-feature">FEATURE</span></div>
+      <ul class="changes">
+        <li><strong>Grid snap</strong> — joints snap to 25px grid for precise truss construction</li>
+        <li><strong>Bridge templates</strong> — load pre-built Pratt Truss, Warren Truss, Arch, Suspension, or Simple Beam</li>
+        <li><strong>Force diagram overlay</strong> — compression/tension arrows on every beam during testing</li>
+        <li><strong>Engineering Report</strong> — printable technical report with material breakdown and stress analysis</li>
+        <li><strong>CSV stress export</strong> — download per-beam data for Excel/Python analysis</li>
+        <li><strong>Design comparison</strong> — test two designs, compare side-by-side on 6 metrics</li>
+        <li><strong>About page</strong> — full technical documentation with equations, material table, limitations</li>
+        <li><strong>12 challenges</strong> — 4 per level including No Screws, Speed Run, Wood Semi, The Impossible</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="v-header"><span class="v-num">v3.0</span><span class="v-name">Game Features</span><span class="v-date">July 2025</span><span class="v-tag tag-feature">FEATURE</span></div>
+      <ul class="changes">
+        <li><strong>Undo system</strong> — up to 60 steps, Ctrl+Z shortcut</li>
+        <li><strong>Symmetry mode</strong> — mirror beams across span center automatically</li>
+        <li><strong>Copy left half</strong> — mirror existing left-side structure to right</li>
+        <li><strong>Night mode</strong> — stars, moon, glow effects on stressed beams</li>
+        <li><strong>Rain storm</strong> — +20% vehicle force, −15% break limit</li>
+        <li><strong>Wind burst / Earthquake</strong> — lateral forcing events</li>
+        <li><strong>Slow motion</strong> — 20% speed for detailed observation</li>
+        <li><strong>Leaderboard</strong> — best scores stored per-level in localStorage</li>
+        <li><strong>Save/load designs</strong> — name and save any design to localStorage</li>
+        <li><strong>Live stats panel</strong> — vehicles crossed, max load, beams broken, peak stress</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="v-header"><span class="v-num">v2.0</span><span class="v-name">Simulation Core Rewrite</span><span class="v-date">July 2025</span><span class="v-tag tag-major">MAJOR</span></div>
+      <ul class="changes">
+        <li><strong>Replaced Matter.js</strong> with custom Verlet physics — stable for arbitrary truss topologies</li>
+        <li><strong>Beam subdivision</strong> — each beam split into ~38px segments with free intermediate joints</li>
+        <li><strong>Sag-based failure</strong> — failure measured by joint displacement from settled baseline</li>
+        <li><strong>Settled baseline system</strong> — 120-frame settle window before break-checking starts</li>
+        <li><strong>Vehicle gravity</strong> — vehicles fall into chasm when bridge fails</li>
+        <li><strong>Beam inspector</strong> — click any beam during test for stress %, mode, cost</li>
+        <li><strong>Cable material</strong> — tension-only constraint (compression skipped)</li>
+        <li><strong>Tower anchors</strong> — suspension bridge anchor points above road level</li>
+        <li><strong>Grand Canyon level</strong> — mid-span pier with extra anchor points</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="v-header"><span class="v-num">v1.0</span><span class="v-name">Initial Release</span><span class="v-date">June 2025</span><span class="v-tag tag-major">INITIAL</span></div>
+      <ul class="changes">
+        <li><strong>Matter.js physics</strong> — rigid body simulation with constraint pins</li>
+        <li><strong>3 materials</strong> — Wood, Steel, Concrete</li>
+        <li><strong>4 vehicles</strong> — Sedan, Van, Box Truck, Semi</li>
+        <li><strong>2 levels</strong> — Narrow Gorge, River Crossing</li>
+        <li><strong>Wave system</strong> — automatic vehicle waves (later replaced by manual spawning)</li>
+        <li><strong>Stress color feedback</strong> — amber → red as beams approach failure</li>
+        <li><strong>GitHub Pages deployment</strong> — live at notivanly.github.io/BridgeGame</li>
+      </ul>
+    </div>
+
+  </div>
+</main>
+<footer>
+  <a href="landing.html">Home</a> · <a href="index.html">Play</a> · <a href="about.html">Engineering Docs</a> · <a href="feedback.html">Feedback</a>
+</footer>
+</body>
+</html>
