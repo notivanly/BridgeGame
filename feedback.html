@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Feedback — Load Limit</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#071828;--blue2:#0a3158;--amber:#e8a33d;--paper:#f2ecdd;--ink:#16212c;--success:#49b07d;--danger:#d4483a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Archivo',sans-serif;background:var(--blue);color:var(--paper);min-height:100vh;}
+nav{display:flex;align-items:center;justify-content:space-between;padding:16px 5%;border-bottom:1px solid rgba(255,255,255,.08);}
+.nav-logo{font-weight:900;font-size:18px;}.nav-logo span{color:var(--amber);}
+.nav-links{display:flex;gap:12px;}.nav-links a{color:#8fb0cc;text-decoration:none;font-size:13px;padding:5px 12px;border:1px solid transparent;border-radius:16px;}
+.nav-links a:hover{border-color:#2a5070;color:var(--paper);}
+.nav-links .play{background:var(--amber);color:var(--ink)!important;font-weight:700;}
+main{max-width:860px;margin:0 auto;padding:48px 5%;}
+h1{font-size:32px;font-weight:900;margin-bottom:8px;}
+h1 span{color:var(--amber);}
+.subtitle{color:#8fb0cc;margin-bottom:40px;font-size:15px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start;}
+@media(max-width:700px){.two-col{grid-template-columns:1fr;}}
+
+/* Form */
+.form-card{background:var(--paper);color:var(--ink);border-radius:12px;padding:28px;}
+.form-card h2{font-size:18px;font-weight:900;margin-bottom:20px;color:var(--ink);}
+label{display:block;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#6b6354;margin-bottom:6px;margin-top:16px;}
+label:first-of-type{margin-top:0;}
+input,select,textarea{width:100%;padding:10px 14px;border:1.5px solid #d0c9b8;border-radius:8px;font-family:'Archivo',sans-serif;font-size:14px;color:var(--ink);background:#fff;transition:border-color .15s;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--amber);}
+textarea{min-height:100px;resize:vertical;}
+
+/* Stars */
+.stars{display:flex;gap:6px;margin-bottom:4px;}
+.star{font-size:28px;cursor:pointer;opacity:.3;transition:opacity .1s;}
+.star.active{opacity:1;}
+
+.submit-btn{width:100%;background:var(--amber);color:var(--ink);font-family:'Archivo',sans-serif;font-weight:900;font-size:15px;padding:13px;border:none;border-radius:8px;cursor:pointer;margin-top:20px;transition:opacity .15s;}
+.submit-btn:hover{opacity:.9;}
+.success-msg{display:none;background:#e8f5e9;color:#2e7d32;padding:14px 16px;border-radius:8px;font-size:14px;margin-top:16px;text-align:center;}
+
+/* Feedback list */
+.list-card{background:rgba(255,255,255,.04);border:1px solid #1c4a73;border-radius:12px;padding:24px;}
+.list-card h2{font-size:18px;font-weight:900;margin-bottom:16px;}
+.fb-item{background:rgba(255,255,255,.04);border-radius:8px;padding:16px;margin-bottom:12px;border-left:3px solid var(--amber);}
+.fb-item:last-child{margin-bottom:0;}
+.fb-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.fb-name{font-weight:700;font-size:14px;}
+.fb-stars{font-size:14px;}
+.fb-role{font-size:11px;color:#8fb0cc;margin-bottom:8px;}
+.fb-msg{font-size:13px;line-height:1.55;color:#cfe3ee;}
+.fb-date{font-size:10px;color:#5a7a94;margin-top:8px;font-family:'IBM Plex Mono',monospace;}
+.empty-state{text-align:center;color:#5a7a94;padding:32px;font-size:14px;}
+.filter-btns{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.filter-btn{background:transparent;color:#8fb0cc;border:1px solid #2a5070;border-radius:16px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:'Archivo',sans-serif;}
+.filter-btn.active{background:var(--amber);color:var(--ink);border-color:var(--amber);font-weight:700;}
+.count-badge{background:rgba(232,163,61,.15);color:var(--amber);font-size:12px;padding:4px 10px;border-radius:12px;margin-left:8px;}
+.sort-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+.sort-select{background:rgba(255,255,255,.06);color:var(--paper);border:1px solid #2a5070;border-radius:6px;padding:5px 10px;font-size:12px;font-family:'Archivo',sans-serif;}
+footer{text-align:center;padding:32px;color:#5a7a94;font-size:13px;border-top:1px solid #1c4a73;margin-top:48px;}
+footer a{color:var(--amber);text-decoration:none;}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-logo">LOAD <span>LIMIT</span></div>
+  <div class="nav-links">
+    <a href="landing.html">Home</a>
+    <a href="about.html">Docs</a>
+    <a href="changelog.html">Changelog</a>
+    <a href="index.html" class="play">▶ Play</a>
+  </div>
+</nav>
+<main>
+  <h1>Leave <span>Feedback</span></h1>
+  <p class="subtitle">Share what you learned, what broke, or what you'd add. All feedback is stored locally in your browser.</p>
+
+  <div class="two-col">
+    <!-- FORM -->
+    <div class="form-card">
+      <h2>Share Your Experience</h2>
+      <label>Your name (or anonymous)</label>
+      <input type="text" id="fb-name" placeholder="e.g. Alex or Anonymous"/>
+      <label>I am a...</label>
+      <select id="fb-role">
+        <option value="Student">Student</option>
+        <option value="Teacher / Professor">Teacher / Professor</option>
+        <option value="Engineer">Engineer</option>
+        <option value="Curious person">Just curious</option>
+        <option value="Other">Other</option>
+      </select>
+      <label>Rating</label>
+      <div class="stars" id="star-row">
+        <span class="star" data-v="1">⭐</span>
+        <span class="star" data-v="2">⭐</span>
+        <span class="star" data-v="3">⭐</span>
+        <span class="star" data-v="4">⭐</span>
+        <span class="star" data-v="5">⭐</span>
+      </div>
+      <label>Your feedback</label>
+      <textarea id="fb-msg" placeholder="What did you learn? What would you improve? Did something break?"></textarea>
+      <label>What bridge type did you build?</label>
+      <select id="fb-bridge">
+        <option value="Simple beam">Simple beam</option>
+        <option value="Truss">Truss (Pratt / Warren)</option>
+        <option value="Arch">Arch bridge</option>
+        <option value="Suspension">Suspension bridge</option>
+        <option value="Mix">Mix of everything</option>
+        <option value="Still learning">Still learning</option>
+      </select>
+      <button class="submit-btn" onclick="submitFeedback()">Submit Feedback</button>
+      <div class="success-msg" id="success-msg">✓ Thanks! Your feedback has been saved.</div>
+    </div>
+
+    <!-- LIST -->
+    <div class="list-card">
+      <h2>Recent Feedback <span class="count-badge" id="fb-count">0</span></h2>
+      <div class="sort-row">
+        <div class="filter-btns">
+          <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+          <button class="filter-btn" onclick="setFilter('5',this)">⭐⭐⭐⭐⭐</button>
+          <button class="filter-btn" onclick="setFilter('student',this)">Students</button>
+          <button class="filter-btn" onclick="setFilter('teacher',this)">Teachers</button>
+        </div>
+        <select class="sort-select" id="sort-sel" onchange="renderList()">
+          <option value="newest">Newest first</option>
+          <option value="highest">Highest rated</option>
+        </select>
+      </div>
+      <div id="fb-list"></div>
+    </div>
+  </div>
+</main>
+<footer>
+  <a href="landing.html">Home</a> · <a href="index.html">Play the Game</a> · <a href="about.html">Engineering Docs</a>
+  <br><br>Feedback is stored in your browser's localStorage. It is not sent to any server.
+</footer>
+
+<script>
+// Seed some example feedback so the page isn't empty on first load
+const SEED = [
+  {name:'Alex R.',role:'Student',rating:5,msg:'Finally understood why triangles matter in structures. Watched my beam bridge collapse then added diagonals — clicked immediately.',bridge:'Truss',date:'2025-06-15'},
+  {name:'Ms. Johnson',role:'Teacher / Professor',rating:5,msg:'The tension/compression overlay is genuinely useful for teaching load paths. Better than any static diagram I use in class.',bridge:'Mix',date:'2025-06-20'},
+  {name:'Anonymous',role:'Engineer',rating:4,msg:'Impressive that this runs in the browser. The resonance model is a nice touch — my students always ask about Tacoma Narrows.',bridge:'Suspension',date:'2025-06-28'},
+  {name:'Jamie K.',role:'Student',rating:5,msg:'Built a suspension bridge that survived the tank. Took 3 hours but worth it. The cable-only tower rule forced me to think about real engineering.',bridge:'Suspension',date:'2025-07-01'},
+  {name:'Anonymous',role:'Just curious',rating:4,msg:'Really cool sim. Would love an option to see the force magnitudes as actual numbers not just colors.',bridge:'Simple beam',date:'2025-07-03'},
+];
+
+let currentFilter = 'all';
+
+function getAll() {
+  const user = JSON.parse(localStorage.getItem('bridge_feedback') || '[]');
+  // Combine seed + user feedback, dedup by date
+  const all = [...SEED, ...user];
+  return all;
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
+}
+
+function renderList() {
+  const all = getAll();
+  const sort = document.getElementById('sort-sel').value;
+  let items = [...all];
+  if (currentFilter === '5') items = items.filter(f => f.rating === 5);
+  if (currentFilter === 'student') items = items.filter(f => f.role === 'Student');
+  if (currentFilter === 'teacher') items = items.filter(f => f.role === 'Teacher / Professor');
+  if (sort === 'highest') items.sort((a,b) => b.rating - a.rating);
+  else items.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+  document.getElementById('fb-count').textContent = all.length;
+  const list = document.getElementById('fb-list');
+  if (!items.length) { list.innerHTML = '<div class="empty-state">No feedback matches this filter yet.</div>'; return; }
+  list.innerHTML = items.map(f => `
+    <div class="fb-item">
+      <div class="fb-header">
+        <div class="fb-name">${f.name}</div>
+        <div class="fb-stars">${'⭐'.repeat(f.rating)}</div>
+      </div>
+      <div class="fb-role">${f.role} · ${f.bridge || ''}</div>
+      <div class="fb-msg">"${f.msg}"</div>
+      <div class="fb-date">${f.date}</div>
+    </div>`).join('');
+}
+
+// Star rating
+let selectedRating = 5;
+document.querySelectorAll('.star').forEach(s => {
+  s.addEventListener('mouseenter', () => {
+    const v = parseInt(s.dataset.v);
+    document.querySelectorAll('.star').forEach((st,i) => st.classList.toggle('active', i < v));
+  });
+  s.addEventListener('click', () => {
+    selectedRating = parseInt(s.dataset.v);
+    document.querySelectorAll('.star').forEach((st,i) => st.classList.toggle('active', i < selectedRating));
+  });
+});
+// Default 5 stars active
+document.querySelectorAll('.star').forEach(s => s.classList.add('active'));
+document.getElementById('star-row').addEventListener('mouseleave', () => {
+  document.querySelectorAll('.star').forEach((st,i) => st.classList.toggle('active', i < selectedRating));
+});
+
+function submitFeedback() {
+  const name = document.getElementById('fb-name').value.trim() || 'Anonymous';
+  const role = document.getElementById('fb-role').value;
+  const msg = document.getElementById('fb-msg').value.trim();
+  const bridge = document.getElementById('fb-bridge').value;
+  if (!msg) { alert('Please write a message before submitting.'); return; }
+  const entry = { name, role, rating: selectedRating, msg, bridge, date: new Date().toISOString().split('T')[0] };
+  const saved = JSON.parse(localStorage.getItem('bridge_feedback') || '[]');
+  saved.unshift(entry);
+  localStorage.setItem('bridge_feedback', JSON.stringify(saved.slice(0, 50)));
+  document.getElementById('success-msg').style.display = 'block';
+  document.getElementById('fb-msg').value = '';
+  document.getElementById('fb-name').value = '';
+  renderList();
+  setTimeout(() => document.getElementById('success-msg').style.display = 'none', 4000);
+}
+
+renderList();
+</script>
+</body>
+</html>
