@@ -316,7 +316,7 @@ function canvasPos(e){const r=canvas.getBoundingClientRect();const cssX=(e.clien
 // ============================================================
 // Build helpers
 // ============================================================
-function addJoint(x,y,fixed){const j={id:nextId++,x,y,fixed};joints.push(j);return j;}
+function addJoint(x,y,fixed){const s=snapToGrid(x,y);const j={id:nextId++,x:s.x,y:s.y,fixed};joints.push(j);return j;}
 function addBeam(a,b,matKey){
   if(matKey==='delete'||matKey==='screw')return;
   if(challengeMode?.materialLock&&!challengeMode.materialLock.includes(matKey)){flashMessage('Challenge: only '+challengeMode.materialLock.join('/')+' allowed!');return;}
@@ -530,7 +530,7 @@ function draw(){
   ctx.setTransform(dpr*zoom,0,0,dpr*zoom,panX*dpr,panY*dpr);
   drawSky();drawTerrain();
   if(mode==='build'){drawSpanDimension();drawAnchors();drawBeamsBuildMode();drawJointsBuildMode();if(drag&&activeMaterial!=='delete'&&activeMaterial!=='screw')drawDragLine();if(buildTimerActive)drawTimer();}
-  else{drawTrails();drawBeamsPhysics();drawFallingBeams();drawSimJoints();drawDebris();drawSplash();drawVehicles();drawOverlays();drawInspector();if(mode==='replay')drawReplayOverlay();}
+  else{drawTrails();drawBeamsPhysics();drawFallingBeams();drawSimJoints();drawDebris();drawSplash();drawVehicles();drawOverlays();drawInspector();drawForceOverlay();if(mode==='replay')drawReplayOverlay();}
   if(rainActive)drawRain();
   ctx.setTransform(dpr,0,0,dpr,0,0);
 }
@@ -804,3 +804,377 @@ refreshHUD();
 loadSharedBridge();
 requestAnimationFrame(loop);
 if(!localStorage.getItem('tutorialDone'))showTutorialStep(0);
+
+// ============================================================
+// GRID SNAP
+// ============================================================
+let gridSnap = false;
+const GRID_SIZE = 25;
+function snapToGrid(x, y) {
+  if (!gridSnap) return { x, y };
+  return { x: Math.round(x / GRID_SIZE) * GRID_SIZE, y: Math.round(y / GRID_SIZE) * GRID_SIZE };
+}
+
+// Patch canvasPos to support grid snap
+const _origCanvasPos = canvasPos;
+// Override drag handling to snap
+const _origPointerUp = null;
+
+// ============================================================
+// EXAMPLE BRIDGE TEMPLATES
+// ============================================================
+function loadTemplate(name) {
+  if (mode !== 'build') { flashMessage('Switch to build mode first.'); return; }
+  pushHistory();
+  // Clear free joints and beams
+  joints = joints.filter(j => j.fixed);
+  beams = [];
+  totalCost = 0;
+  nextId = Math.max(...joints.map(j => j.id)) + 1;
+
+  const cl = CL(), cr = CR(), mid = (cl + cr) / 2;
+  const span = cr - cl;
+  const seg = span / 4; // quarter segments
+
+  switch (name) {
+    case 'pratt': buildPrattTruss(cl, cr, seg); break;
+    case 'warren': buildWarrenTruss(cl, cr, seg); break;
+    case 'arch': buildArchBridge(cl, cr, seg); break;
+    case 'suspension': buildSuspensionBridge(cl, cr, mid); break;
+    case 'simple': buildSimpleBeam(cl, cr); break;
+  }
+  refreshHUD();
+  flashMessage('✓ Template loaded — click Test Bridge to try it!');
+}
+
+function jAt(x, y) {
+  const ex = joints.find(j => Math.abs(j.x - x) < 6 && Math.abs(j.y - y) < 6);
+  if (ex) return ex;
+  return addJoint(x, y, false);
+}
+function bMat(a, b, mat) {
+  if (!beamExists(a.id, b.id)) addBeam(a, b, mat);
+}
+
+function buildSimpleBeam(cl, cr) {
+  const a = joints.find(j => j.fixed && Math.abs(j.x - cl) < 6 && Math.abs(j.y - GROUND_Y + 5) < 20);
+  const b = joints.find(j => j.fixed && Math.abs(j.x - cr) < 6 && Math.abs(j.y - GROUND_Y + 5) < 20);
+  if (a && b) bMat(a, b, 'steel');
+}
+
+function buildPrattTruss(cl, cr, seg) {
+  const ry = GROUND_Y + 5, ty = GROUND_Y - 80;
+  const pts = [0, 1, 2, 3, 4].map(i => ({ bot: jAt(cl + i * seg, ry), top: jAt(cl + i * seg, ty) }));
+  pts[0].bot = joints.find(j => j.fixed && Math.abs(j.x - cl) < 6 && j.y > GROUND_Y - 20) || pts[0].bot;
+  pts[4].bot = joints.find(j => j.fixed && Math.abs(j.x - cr) < 6 && j.y > GROUND_Y - 20) || pts[4].bot;
+  // Chords
+  for (let i = 0; i < 4; i++) { bMat(pts[i].bot, pts[i+1].bot, 'steel'); bMat(pts[i].top, pts[i+1].top, 'steel'); }
+  // Verticals
+  for (let i = 0; i < 5; i++) bMat(pts[i].bot, pts[i].top, 'steel');
+  // Diagonals (Pratt pattern: compression diagonals slope toward center)
+  for (let i = 0; i < 2; i++) bMat(pts[i].top, pts[i+1].bot, 'steel');
+  for (let i = 2; i < 4; i++) bMat(pts[i+1].top, pts[i].bot, 'steel');
+}
+
+function buildWarrenTruss(cl, cr, seg) {
+  const ry = GROUND_Y + 5, ty = GROUND_Y - 75;
+  const bots = [0, 1, 2, 3, 4].map(i => {
+    if (i === 0) return joints.find(j => j.fixed && Math.abs(j.x - cl) < 6 && j.y > GROUND_Y - 20) || jAt(cl, ry);
+    if (i === 4) return joints.find(j => j.fixed && Math.abs(j.x - cr) < 6 && j.y > GROUND_Y - 20) || jAt(cr, ry);
+    return jAt(cl + i * seg, ry);
+  });
+  const tops = [0, 1, 2, 3].map(i => jAt(cl + seg * 0.5 + i * seg, ty));
+  // Bottom chord
+  for (let i = 0; i < 4; i++) bMat(bots[i], bots[i+1], 'steel');
+  // Diagonals (Warren: alternating)
+  for (let i = 0; i < 4; i++) { bMat(bots[i], tops[i], 'steel'); bMat(bots[i+1], tops[i], 'steel'); }
+  // Top chord
+  for (let i = 0; i < 3; i++) bMat(tops[i], tops[i+1], 'steel');
+}
+
+function buildArchBridge(cl, cr, seg) {
+  const ry = GROUND_Y + 5;
+  const mid = (cl + cr) / 2;
+  const archH = 120;
+  const bl = joints.find(j => j.fixed && Math.abs(j.x - cl) < 6 && j.y > GROUND_Y - 20);
+  const br = joints.find(j => j.fixed && Math.abs(j.x - cr) < 6 && j.y > GROUND_Y - 20);
+  // Deck
+  const d1 = jAt(cl + seg, ry), d2 = jAt(mid, ry), d3 = jAt(cr - seg, ry);
+  bMat(bl, d1, 'concrete'); bMat(d1, d2, 'concrete'); bMat(d2, d3, 'concrete'); bMat(d3, br, 'concrete');
+  // Arch nodes
+  const a1 = jAt(cl + seg * 0.8, GROUND_Y - archH * 0.6);
+  const a2 = jAt(cl + seg * 1.6, GROUND_Y - archH);
+  const a3 = jAt(mid, GROUND_Y - archH * 1.1);
+  const a4 = jAt(cl + seg * 2.4, GROUND_Y - archH);
+  const a5 = jAt(cl + seg * 3.2, GROUND_Y - archH * 0.6);
+  // Arch ribs
+  [bl, a1, a2, a3, a4, a5, br].reduce((prev, cur) => { bMat(prev, cur, 'steel'); return cur; });
+  // Hangers
+  [[a1, d1], [a2, d1], [a2, d2], [a3, d2], [a4, d2], [a4, d3], [a5, d3]].forEach(([a, b]) => bMat(a, b, 'steel'));
+}
+
+function buildSuspensionBridge(cl, cr, mid) {
+  const ry = GROUND_Y + 5;
+  const towerAnchors = joints.filter(j => j.isTower);
+  if (towerAnchors.length < 4) { flashMessage('Need tower anchors — use River Crossing or Grand Canyon level.'); return; }
+  const ltop = towerAnchors.find(j => j.x < mid && j.y < GROUND_Y - TOWER_H * 0.7);
+  const rtop = towerAnchors.find(j => j.x > mid && j.y < GROUND_Y - TOWER_H * 0.7);
+  if (!ltop || !rtop) return;
+  // Main cable
+  const c1 = jAt(cl + (mid - cl) * 0.3, GROUND_Y - 50);
+  const c2 = jAt(mid, GROUND_Y - 20);
+  const c3 = jAt(cr - (cr - mid) * 0.3, GROUND_Y - 50);
+  [ltop, c1, c2, c3, rtop].reduce((p, c) => { addBeam(p, c, 'cable'); return c; });
+  // Deck
+  const dl = joints.find(j => j.fixed && Math.abs(j.x - cl) < 6 && j.y > GROUND_Y - 20);
+  const dr = joints.find(j => j.fixed && Math.abs(j.x - cr) < 6 && j.y > GROUND_Y - 20);
+  const dm = jAt(mid, ry);
+  bMat(dl, dm, 'steel'); bMat(dm, dr, 'steel');
+  // Hangers
+  bMat(c1, jAt(cl + (mid - cl) * 0.3, ry), 'steel');
+  bMat(c2, dm, 'steel');
+  bMat(c3, jAt(cr - (cr - mid) * 0.3, ry), 'steel');
+}
+
+// ============================================================
+// FORCE DIAGRAM OVERLAY
+// ============================================================
+let forceOverlay = false;
+function drawForceOverlay() {
+  if (!forceOverlay || mode !== 'simulating') return;
+  for (const sb of simBeams) {
+    if (sb.broken) continue;
+    const sja = simJoints[sb.ai], sjb = simJoints[sb.bi];
+    const mx = (sja.x + sjb.x) / 2, my = (sja.y + sjb.y) / 2;
+    const ang = Math.atan2(sjb.y - sja.y, sjb.x - sja.x);
+    const mag = Math.min(sb.stress * 20, 25);
+    if (mag < 1) continue;
+    const col = sb.tension ? '#64b4ff' : '#ff8844';
+    ctx.save();
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7;
+    // Arrow showing force direction
+    if (sb.tension) {
+      // Tension: arrows pulling outward
+      [[1, 1], [-1, -1]].forEach(([s]) => {
+        ctx.beginPath();
+        ctx.moveTo(mx + Math.cos(ang) * s * 6, my + Math.sin(ang) * s * 6);
+        ctx.lineTo(mx + Math.cos(ang) * s * (6 + mag), my + Math.sin(ang) * s * (6 + mag));
+        ctx.stroke();
+      });
+    } else {
+      // Compression: arrows pushing inward
+      [[1, 1], [-1, -1]].forEach(([s]) => {
+        ctx.beginPath();
+        ctx.moveTo(mx + Math.cos(ang) * s * (6 + mag), my + Math.sin(ang) * s * (6 + mag));
+        ctx.lineTo(mx + Math.cos(ang) * s * 6, my + Math.sin(ang) * s * 6);
+        ctx.stroke();
+      });
+    }
+    ctx.restore();
+  }
+}
+
+// ============================================================
+// ENGINEERING REPORT
+// ============================================================
+function generateReport() {
+  const span = ((CR() - CL()) * METERS_PER_PIXEL).toFixed(1);
+  const totalM = (beams.reduce((s, b) => s + b.length, 0) * METERS_PER_PIXEL).toFixed(1);
+  const matBreakdown = {};
+  beams.forEach(b => {
+    const m = MATERIALS[b.material];
+    if (!matBreakdown[b.material]) matBreakdown[b.material] = { meters: 0, cost: 0, count: 0 };
+    matBreakdown[b.material].meters += b.length * METERS_PER_PIXEL;
+    matBreakdown[b.material].cost += b.length * METERS_PER_PIXEL * m.costPerMeter;
+    matBreakdown[b.material].count++;
+  });
+
+  const peakStress = simBeams.length ? simBeams.reduce((m, b) => Math.max(m, b.stress), 0) : 0;
+  const brokenCount = simBeams.filter(b => b.broken).length;
+  const tensionBeams = simBeams.filter(b => b.tension && !b.broken).length;
+  const compressionBeams = simBeams.filter(b => !b.tension && !b.broken).length;
+  const grade = mode === 'won' || mode === 'lost' ? calcGrade(mode === 'won') : 'N/A';
+  const budgetPct = ((totalCost / BUD()) * 100).toFixed(1);
+
+  const matRows = Object.entries(matBreakdown).map(([k, v]) =>
+    `  ${MATERIALS[k].name.padEnd(14)} ${v.count.toString().padStart(3)} beams   ${v.meters.toFixed(1).padStart(6)}m   $${Math.round(v.cost).toLocaleString().padStart(8)}`
+  ).join('\n');
+
+  const simSummary = simBeams.length > 0 ? `
+SIMULATION RESULTS
+──────────────────────────────────────────────────────────────
+  Test grade:          ${grade}
+  Vehicles crossed:    ${vehiclesCrossed}
+  Max load survived:   ${maxLoadSurvived.toLocaleString()} kg
+  Beams broken:        ${brokenCount} / ${simBeams.length}
+  Peak stress:         ${(peakStress / 1.4 * 100).toFixed(0)}%
+  Beams in tension:    ${tensionBeams}
+  Beams in compression:${compressionBeams}
+  Resonance reached:   ${(resonance * 100).toFixed(0)}%
+
+STRUCTURAL ANALYSIS
+──────────────────────────────────────────────────────────────
+  ${peakStress > 1.0 ? '⚠  Critical overload detected — primary members exceeded failure threshold.' :
+    peakStress > 0.6 ? '⚡ High stress — structure passed but has minimal safety margin.' :
+    peakStress > 0.3 ? '✓  Moderate stress — reasonable safety margin observed.' :
+    '✓✓ Low stress — well over-engineered for the applied load.'}
+  ${brokenCount > 0 ? `   ${brokenCount} beam(s) failed. Review diagonal bracing and span-to-depth ratio.` : '   No structural failures.'}
+  ${resonance > 0.5 ? '⚠  Significant resonance detected — add damping members or vary vehicle spacing.' : ''}` : '\n  (Run a simulation to populate this section.)';
+
+  const report = `
+════════════════════════════════════════════════════════════════
+  LOAD LIMIT — BRIDGE ENGINEERING ANALYSIS REPORT
+  Generated: ${new Date().toLocaleString()}
+════════════════════════════════════════════════════════════════
+
+PROJECT OVERVIEW
+──────────────────────────────────────────────────────────────
+  Level:               ${lvl().name}
+  Span length:         ${span} m
+  Total beam count:    ${beams.length}
+  Total beam length:   ${totalM} m
+  Budget utilization:  $${Math.round(totalCost).toLocaleString()} / $${BUD().toLocaleString()} (${budgetPct}%)
+
+MATERIAL BREAKDOWN
+──────────────────────────────────────────────────────────────
+  Material       Beams        Length        Cost
+  ─────────────────────────────────────────────
+${matRows}
+  ─────────────────────────────────────────────
+  TOTAL         ${beams.length.toString().padStart(4)} beams  ${totalM.padStart(7)}m  $${Math.round(totalCost).toLocaleString().padStart(8)}
+${simSummary}
+
+SIMULATION METHODOLOGY
+──────────────────────────────────────────────────────────────
+  This simulation uses Position-Based Dynamics (Verlet integration)
+  with iterative constraint relaxation (${8} passes/frame at 60fps).
+  
+  Failure criterion: joint vertical sag exceeding material-specific
+  threshold (wood: 2.5px, concrete: 9px, steel: 22px, carbon: 32px).
+  
+  Vehicle load is distributed to nearby structural nodes proportional
+  to horizontal proximity (linear weight distribution model).
+
+LIMITATIONS
+──────────────────────────────────────────────────────────────
+  • 2D planar analysis only (no out-of-plane effects)
+  • Simplified material model (no fatigue, no plastic deformation)
+  • Node masses approximated from beam geometry
+  • Dynamic effects simplified (no true modal analysis)
+
+════════════════════════════════════════════════════════════════
+  Load Limit Bridge Engineering Lab  |  ${window.location.href.split('#')[0]}
+════════════════════════════════════════════════════════════════
+`.trim();
+
+  // Open in new window for easy printing/saving
+  const win = window.open('', '_blank');
+  win.document.write(`<html><head><title>Bridge Report</title>
+    <style>body{font-family:"Courier New",monospace;font-size:13px;padding:32px;max-width:720px;margin:0 auto;line-height:1.6;background:#fff;color:#111;}
+    pre{white-space:pre-wrap;}
+    @media print{body{padding:16px;}}
+    .print-btn{background:#e8a33d;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:700;margin-bottom:20px;}</style>
+    </head><body>
+    <button class="print-btn" onclick="window.print()">🖨 Print / Save as PDF</button>
+    <pre>${report}</pre></body></html>`);
+  win.document.close();
+}
+
+// ============================================================
+// CSV EXPORT
+// ============================================================
+function exportCSV() {
+  if (!simBeams.length) { flashMessage('Run a simulation first to export data.'); return; }
+  const rows = [['Beam Index', 'Material', 'Length (m)', 'Stress %', 'Mode', 'Broken', 'Cost ($)']];
+  simBeams.forEach((sb, i) => {
+    const lenM = (sb.restLen * METERS_PER_PIXEL).toFixed(3);
+    const stressPct = (sb.stress / 1.4 * 100).toFixed(1);
+    const cost = Math.round(sb.restLen * METERS_PER_PIXEL * sb.material.costPerMeter);
+    rows.push([i + 1, sb.material.name, lenM, stressPct, sb.tension ? 'tension' : 'compression', sb.broken ? 'yes' : 'no', cost]);
+  });
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `bridge_stress_data_${Date.now()}.csv`;
+  a.click();
+  flashMessage('✓ Stress data exported as CSV');
+}
+
+// ============================================================
+// DESIGN COMPARISON
+// ============================================================
+let comparisonA = null;
+function saveForComparison() {
+  if (mode !== 'won' && mode !== 'lost') { flashMessage('Test a bridge first to save it for comparison.'); return; }
+  comparisonA = {
+    cost: Math.round(totalCost), grade: calcGrade(mode === 'won'),
+    maxLoad: maxLoadSurvived, crossed: vehiclesCrossed,
+    beams: beams.length, peakStress: simBeams.reduce((m, b) => Math.max(m, b.stress), 0),
+    label: `Design A — $${Math.round(totalCost).toLocaleString()}`
+  };
+  flashMessage('✓ Design A saved — rebuild and test again, then click Compare');
+}
+function compareDesigns() {
+  if (!comparisonA) { flashMessage('Save a design first with "Save for Comparison"'); return; }
+  if (mode !== 'won' && mode !== 'lost') { flashMessage('Test your second design first.'); return; }
+  const b = {
+    cost: Math.round(totalCost), grade: calcGrade(mode === 'won'),
+    maxLoad: maxLoadSurvived, crossed: vehiclesCrossed,
+    beams: beams.length, peakStress: simBeams.reduce((m, sb) => Math.max(m, sb.stress), 0),
+    label: `Design B — $${Math.round(totalCost).toLocaleString()}`
+  };
+  const a = comparisonA;
+  const win = window.open('', '_blank');
+  const row = (label, av, bv, betterFn) => {
+    const ab = betterFn(av, bv);
+    return `<tr><td>${label}</td><td class="${ab===1?'win':''}">${av}</td><td class="${ab===2?'win':''}">${bv}</td></tr>`;
+  };
+  win.document.write(`<html><head><title>Bridge Comparison</title>
+    <style>body{font-family:Arial,sans-serif;padding:32px;max-width:640px;margin:0 auto;background:#f5f5f5;}
+    h1{color:#0a3158;}table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+    th{background:#0a3158;color:#fff;padding:12px 16px;text-align:left;}
+    td{padding:10px 16px;border-bottom:1px solid #eee;}tr:last-child td{border:none;}
+    td:first-child{font-weight:600;color:#444;}
+    .win{background:#e8f5e9;color:#2e7d32;font-weight:700;}
+    .print-btn{background:#e8a33d;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:700;margin-bottom:20px;}</style>
+    </head><body>
+    <button class="print-btn" onclick="window.print()">🖨 Print</button>
+    <h1>Bridge Design Comparison</h1>
+    <table><thead><tr><th>Metric</th><th>${a.label}</th><th>${b.label}</th></tr></thead><tbody>
+    ${row('Grade', a.grade, b.grade, (x,y)=>x==='A+'?1:y==='A+'?2:x<y?1:2)}
+    ${row('Total Cost', '$'+a.cost.toLocaleString(), '$'+b.cost.toLocaleString(), (x,y)=>a.cost<b.cost?1:2)}
+    ${row('Max Load Survived', a.maxLoad.toLocaleString()+' kg', b.maxLoad.toLocaleString()+' kg', (x,y)=>a.maxLoad>b.maxLoad?1:2)}
+    ${row('Vehicles Crossed', a.crossed, b.crossed, (x,y)=>a.crossed>b.crossed?1:2)}
+    ${row('Beam Count', a.beams, b.beams, (x,y)=>a.beams<b.beams?1:2)}
+    ${row('Peak Stress', (a.peakStress/1.4*100).toFixed(0)+'%', (b.peakStress/1.4*100).toFixed(0)+'%', (x,y)=>a.peakStress<b.peakStress?1:2)}
+    </tbody></table></body></html>`);
+  win.document.close();
+  comparisonA = null;
+}
+
+// Wire up new buttons
+document.getElementById('btn-grid-snap')?.addEventListener('click', () => {
+  gridSnap = !gridSnap;
+  document.getElementById('btn-grid-snap')?.classList.toggle('active-tool', gridSnap);
+  flashMessage(gridSnap ? '✓ Grid snap ON — joints snap to 25px grid' : 'Grid snap OFF');
+});
+document.getElementById('btn-force-overlay')?.addEventListener('click', () => {
+  forceOverlay = !forceOverlay;
+  document.getElementById('btn-force-overlay')?.classList.toggle('active-tool', forceOverlay);
+});
+document.getElementById('btn-report')?.addEventListener('click', generateReport);
+document.getElementById('btn-export-csv')?.addEventListener('click', exportCSV);
+document.getElementById('btn-save-compare')?.addEventListener('click', saveForComparison);
+document.getElementById('btn-compare')?.addEventListener('click', compareDesigns);
+
+document.querySelectorAll('.template-btn').forEach(btn => {
+  btn.addEventListener('click', () => loadTemplate(btn.dataset.template));
+});
+
+// Patch pointerdown to apply grid snap
+canvas.addEventListener('pointerdown', e => {
+  if (mode !== 'build' || !gridSnap) return;
+  const p = _origCanvasPos ? _origCanvasPos.call(null, e) : canvasPos(e);
+  // Grid snap is applied when joints are created — handled in addJoint callers
+}, true);
