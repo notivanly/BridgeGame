@@ -24,6 +24,7 @@
       <button class="btn-secondary" id="btn-undo">↩ Undo</button>
       <button class="btn-secondary" id="btn-reset">↺ Reset</button>
       <button class="btn-secondary" id="btn-share">🔗 Share</button>
+      <a href="about.html" target="_blank" class="btn-secondary" style="text-decoration:none;display:flex;align-items:center;">📖 About</a>
     </div>
   </header>
   <div class="level-bar">
@@ -46,13 +47,31 @@
       <div class="tool-section"><h3>Build Tools</h3>
         <button class="tool-btn" id="btn-sym">⟺ Symmetry Mode</button>
         <button class="tool-btn" id="btn-copy">⧉ Copy Left Half</button>
+        <button class="tool-btn" id="btn-grid-snap">⊞ Grid Snap</button>
         <button class="tool-btn" id="btn-night">🌙 Night Mode</button>
       </div>
+
+      <div class="tool-section"><h3>Templates</h3>
+        <button class="tool-btn template-btn" data-template="simple">━ Simple Beam</button>
+        <button class="tool-btn template-btn" data-template="pratt">╫ Pratt Truss</button>
+        <button class="tool-btn template-btn" data-template="warren">⟋ Warren Truss</button>
+        <button class="tool-btn template-btn" data-template="arch">⌢ Arch Bridge</button>
+        <button class="tool-btn template-btn" data-template="suspension">∫ Suspension</button>
+      </div>
+
       <div class="tool-section"><h3>Test Tools</h3>
         <button class="tool-btn" id="btn-slow">🐢 Slow Motion</button>
+        <button class="tool-btn" id="btn-force-overlay">⟷ Force Diagram</button>
         <button class="tool-btn" id="btn-wind">💨 Wind Burst</button>
         <button class="tool-btn" id="btn-quake">🌋 Earthquake</button>
         <button class="tool-btn" id="btn-rain">🌧 Rain Storm</button>
+      </div>
+
+      <div class="tool-section"><h3>Analysis</h3>
+        <button class="tool-btn" id="btn-report">📄 Engineering Report</button>
+        <button class="tool-btn" id="btn-export-csv">📊 Export Stress CSV</button>
+        <button class="tool-btn" id="btn-save-compare">⊕ Save for Comparison</button>
+        <button class="tool-btn" id="btn-compare">⚖ Compare Designs</button>
       </div>
       <div class="tool-section"><h3>Save Design</h3>
         <input type="text" id="save-name-input" class="save-input" placeholder="Design name…"/>
