@@ -8,11 +8,16 @@
 </head>
 <body>
 <div class="app-shell">
+
+  <!-- ── TOP HUD ── -->
   <header class="hud-top">
-    <div class="title-block"><h1 class="game-title">LOAD <span>LIMIT</span></h1><div class="game-subtitle">Bridge Engineering Lab</div></div>
+    <div class="title-block">
+      <h1 class="game-title">LOAD <span>LIMIT</span></h1>
+      <div class="game-subtitle">Bridge Engineering Lab</div>
+    </div>
     <div id="mode-badge" class="mode-badge" style="display:none"></div>
     <div class="hud-stats">
-      <div class="hud-stat"><div class="hud-stat-label">Budget left</div><div class="hud-stat-value" id="hud-budget">$300,000</div></div>
+      <div class="hud-stat"><div class="hud-stat-label">Budget</div><div class="hud-stat-value" id="hud-budget">$300,000</div></div>
       <div class="hud-stat"><div class="hud-stat-label">Spent</div><div class="hud-stat-value" id="hud-spent">$0</div></div>
       <div class="hud-stat"><div class="hud-stat-label">Beams</div><div class="hud-stat-value" id="hud-beams">0</div></div>
       <div class="hud-stat"><div class="hud-stat-label">Length</div><div class="hud-stat-value" id="hud-length">0m</div></div>
@@ -20,128 +25,248 @@
     </div>
     <div class="hud-actions">
       <button class="btn-primary" id="btn-test">▶ Test</button>
-      <button class="btn-secondary" id="btn-replay">⏮ Replay</button>
+      <button class="btn-secondary" id="btn-replay">⏮</button>
       <button class="btn-secondary" id="btn-undo">↩ Undo</button>
       <button class="btn-secondary" id="btn-reset">↺ Reset</button>
-      <button class="btn-secondary" id="btn-share">🔗 Share</button>
-      <button class="btn-secondary" id="btn-shortcuts">? Keys</button>
-      <a href="about.html" target="_blank" class="btn-secondary" style="text-decoration:none;display:flex;align-items:center;">📖 Docs</a>
-      <a href="landing.html" class="btn-secondary" style="text-decoration:none;display:flex;align-items:center;">🏠</a>
+      <button class="btn-secondary" id="btn-share">🔗</button>
+      <button class="btn-secondary" id="btn-shortcuts">?</button>
+      <a href="landing.html" class="btn-secondary nav-icon">🏠</a>
+      <a href="about.html" target="_blank" class="btn-secondary nav-icon">📖</a>
     </div>
   </header>
+
+  <!-- ── LEVEL BAR ── -->
   <div class="level-bar">
     <div id="level-tabs"></div>
     <div id="level-desc" class="level-desc"></div>
     <button class="btn-tiny" id="btn-free-build">✕ Exit Challenge</button>
   </div>
 
+  <!-- ── MAIN ── -->
   <main class="game-area">
-    <aside class="toolbar">
-      <h3>Materials</h3>
-      <button class="material-card" data-material="delete"><div><span class="material-swatch" style="background:#d4483a"></span><span class="material-name">🗑 Delete Mode</span></div><div class="material-cost">Click a beam to erase it</div><div class="material-note">Hover = red highlight. Click = remove. Safe erasing.</div></button>
-      <button class="material-card" data-material="screw" style="border-color:#e8a33d"><div><span class="material-swatch" style="background:#e8a33d"></span><span class="material-name">⚙️ Junction Screw</span></div><div class="material-cost">Free · adds a connect point</div><div class="material-note">① Select ② Click beam ③ Switch material ④ Drag from dot</div></button>
-      <button class="material-card active" data-material="wood"><div><span class="material-swatch" style="background:#c89a64"></span><span class="material-name">Wood</span></div><div class="material-cost">$14 / meter</div><div class="material-bar"><span class="fill"></span><span class="fill"></span><span></span><span></span><span></span></div><div class="material-note">Cheap & light. Snaps under heavy loads.</div></button>
-      <button class="material-card" data-material="steel"><div><span class="material-swatch" style="background:#a9bdce"></span><span class="material-name">Steel</span></div><div class="material-cost">$135 / meter</div><div class="material-bar"><span class="fill"></span><span class="fill"></span><span class="fill"></span><span class="fill"></span><span class="fill"></span></div><div class="material-note">Strongest by far. Expensive and heavy.</div></button>
-      <button class="material-card" data-material="concrete"><div><span class="material-swatch" style="background:#b3b1a6"></span><span class="material-name">Concrete</span></div><div class="material-cost">$68 / meter</div><div class="material-bar"><span class="fill"></span><span class="fill"></span><span class="fill"></span><span></span><span></span></div><div class="material-note">Decent strength, very heavy on long spans.</div></button>
-      <button class="material-card" data-material="cable"><div><span class="material-swatch" style="background:#f0c040"></span><span class="material-name">Cable</span></div><div class="material-cost">$45 / meter</div><div class="material-bar"><span class="fill" style="background:#f0c040"></span><span class="fill" style="background:#f0c040"></span><span class="fill" style="background:#f0c040"></span><span></span><span></span></div><div class="material-note">Tension only — perfect for suspension bridges.</div></button>
-      <button class="material-card" data-material="carbon"><div><span class="material-swatch" style="background:#7a5cc0"></span><span class="material-name">Carbon Fiber</span></div><div class="material-cost">$400 / meter</div><div class="material-bar"><span class="fill" style="background:#7a5cc0"></span><span class="fill" style="background:#7a5cc0"></span><span class="fill" style="background:#7a5cc0"></span><span class="fill" style="background:#7a5cc0"></span><span class="fill" style="background:#7a5cc0"></span></div><div class="material-note">Ultra-strong, ultra-light. Very expensive.</div></button>
 
-      <div class="tool-section"><h3>Build Tools</h3>
-        <button class="tool-btn" id="btn-sym">⟺ Symmetry Mode</button>
-        <button class="tool-btn" id="btn-copy">⧉ Copy Left Half</button>
-        <button class="tool-btn" id="btn-grid-snap">⊞ Grid Snap</button>
-        <button class="tool-btn" id="btn-night">🌙 Night Mode</button>
+    <!-- ════ LEFT SIDEBAR ════ -->
+    <aside class="sidebar sidebar-left">
+
+      <!-- 1: MATERIALS -->
+      <div class="panel-section open" data-section="materials">
+        <div class="panel-header mat-header" onclick="toggleSection(this)">
+          <span>🧱 Materials</span><span class="chevron">▾</span>
+        </div>
+        <div class="panel-body">
+          <button class="material-card" data-material="delete">
+            <div class="mc-row"><span class="mc-swatch" style="background:#d4483a"></span><span class="mc-name">🗑 Delete Mode</span></div>
+            <div class="mc-sub">Click any beam to erase it safely</div>
+          </button>
+          <button class="material-card" data-material="screw">
+            <div class="mc-row"><span class="mc-swatch" style="background:#e8a33d"></span><span class="mc-name">⚙️ Junction Screw</span></div>
+            <div class="mc-sub">Click beam → adds a connect dot</div>
+          </button>
+          <button class="material-card active" data-material="wood">
+            <div class="mc-row"><span class="mc-swatch" style="background:#c89a64"></span><span class="mc-name">Wood</span><span class="mc-price">$14/m</span></div>
+            <div class="mc-bar"><span class="f"></span><span class="f"></span><span></span><span></span><span></span></div>
+            <div class="mc-sub">Cheap & light. Snaps under heavy loads.</div>
+          </button>
+          <button class="material-card" data-material="steel">
+            <div class="mc-row"><span class="mc-swatch" style="background:#a9bdce"></span><span class="mc-name">Steel</span><span class="mc-price">$135/m</span></div>
+            <div class="mc-bar"><span class="f"></span><span class="f"></span><span class="f"></span><span class="f"></span><span class="f"></span></div>
+            <div class="mc-sub">Strongest standard material.</div>
+          </button>
+          <button class="material-card" data-material="concrete">
+            <div class="mc-row"><span class="mc-swatch" style="background:#b3b1a6"></span><span class="mc-name">Concrete</span><span class="mc-price">$68/m</span></div>
+            <div class="mc-bar"><span class="f"></span><span class="f"></span><span class="f"></span><span></span><span></span></div>
+            <div class="mc-sub">Decent strength, very heavy.</div>
+          </button>
+          <button class="material-card" data-material="cable">
+            <div class="mc-row"><span class="mc-swatch" style="background:#f0c040"></span><span class="mc-name">Cable</span><span class="mc-price">$45/m</span></div>
+            <div class="mc-bar"><span class="f" style="background:#f0c040"></span><span class="f" style="background:#f0c040"></span><span class="f" style="background:#f0c040"></span><span></span><span></span></div>
+            <div class="mc-sub">Tension only. Suspension bridges.</div>
+          </button>
+          <button class="material-card" data-material="carbon">
+            <div class="mc-row"><span class="mc-swatch" style="background:#7a5cc0"></span><span class="mc-name">Carbon Fiber</span><span class="mc-price">$400/m</span></div>
+            <div class="mc-bar"><span class="f" style="background:#7a5cc0"></span><span class="f" style="background:#7a5cc0"></span><span class="f" style="background:#7a5cc0"></span><span class="f" style="background:#7a5cc0"></span><span class="f" style="background:#7a5cc0"></span></div>
+            <div class="mc-sub">Ultra-strong, ultra-light.</div>
+          </button>
+        </div>
       </div>
 
-      <div class="tool-section"><h3>📚 Guided Lessons</h3>
-        <button class="tool-btn lesson-btn" data-lesson="0">1: Why Beams Fail</button>
-        <button class="tool-btn lesson-btn" data-lesson="1">2: Triangle Strength</button>
-        <button class="tool-btn lesson-btn" data-lesson="2">3: Material Choice</button>
-        <button class="tool-btn lesson-btn" data-lesson="3">4: Tension vs Compression</button>
+      <!-- 2: BUILD TOOLS -->
+      <div class="panel-section open" data-section="build">
+        <div class="panel-header build-header" onclick="toggleSection(this)">
+          <span>🔧 Build Tools</span><span class="chevron">▾</span>
+        </div>
+        <div class="panel-body">
+          <button class="tool-btn" id="btn-sym">⟺ Symmetry Mode</button>
+          <button class="tool-btn" id="btn-copy">⧉ Copy Left Half</button>
+          <button class="tool-btn" id="btn-grid-snap">⊞ Grid Snap</button>
+          <button class="tool-btn" id="btn-night">🌙 Night Mode</button>
+          <div class="tool-group-label">Templates</div>
+          <button class="tool-btn template-btn" data-template="simple">━ Simple Beam</button>
+          <button class="tool-btn template-btn" data-template="pratt">╫ Pratt Truss</button>
+          <button class="tool-btn template-btn" data-template="warren">⟋ Warren Truss</button>
+          <button class="tool-btn template-btn" data-template="arch">⌢ Arch Bridge</button>
+          <button class="tool-btn template-btn" data-template="suspension">∫ Suspension</button>
+          <div class="tool-group-label">📚 Lessons</div>
+          <button class="tool-btn lesson-btn" data-lesson="0">1: Why Beams Fail</button>
+          <button class="tool-btn lesson-btn" data-lesson="1">2: Triangle Strength</button>
+          <button class="tool-btn lesson-btn" data-lesson="2">3: Material Choice</button>
+          <button class="tool-btn lesson-btn" data-lesson="3">4: Tension vs Compression</button>
+        </div>
       </div>
 
-      <div class="tool-section"><h3>Templates</h3>
-        <button class="tool-btn template-btn" data-template="simple">━ Simple Beam</button>
-        <button class="tool-btn template-btn" data-template="pratt">╫ Pratt Truss</button>
-        <button class="tool-btn template-btn" data-template="warren">⟋ Warren Truss</button>
-        <button class="tool-btn template-btn" data-template="arch">⌢ Arch Bridge</button>
-        <button class="tool-btn template-btn" data-template="suspension">∫ Suspension</button>
+      <!-- 3: TEST TOOLS -->
+      <div class="panel-section open" data-section="test">
+        <div class="panel-header test-header" onclick="toggleSection(this)">
+          <span>🧪 Test Tools</span><span class="chevron">▾</span>
+        </div>
+        <div class="panel-body">
+          <button class="tool-btn" id="btn-slow">🐢 Slow Motion</button>
+          <button class="tool-btn" id="btn-force-overlay">⟷ Force Diagram</button>
+          <button class="tool-btn" id="btn-quiz">🧠 Take Quiz</button>
+          <button class="tool-btn" id="btn-wind">💨 Wind Burst</button>
+          <button class="tool-btn" id="btn-quake">🌋 Earthquake</button>
+          <button class="tool-btn" id="btn-rain">🌧 Rain Storm</button>
+        </div>
       </div>
 
-      <div class="tool-section"><h3>Test Tools</h3>
-        <button class="tool-btn" id="btn-slow">🐢 Slow Motion</button>
-        <button class="tool-btn" id="btn-force-overlay">⟷ Force Diagram</button>
-        <button class="tool-btn" id="btn-quiz">🧠 Take Quiz</button>
-        <button class="tool-btn" id="btn-wind">💨 Wind Burst</button>
-        <button class="tool-btn" id="btn-quake">🌋 Earthquake</button>
-        <button class="tool-btn" id="btn-rain">🌧 Rain Storm</button>
+      <!-- 4: EXTRA -->
+      <div class="panel-section open" data-section="extra">
+        <div class="panel-header extra-header" onclick="toggleSection(this)">
+          <span>⚙️ Extra</span><span class="chevron">▾</span>
+        </div>
+        <div class="panel-body">
+          <div class="tool-group-label">Analysis</div>
+          <button class="tool-btn" id="btn-report">📄 Engineering Report</button>
+          <button class="tool-btn" id="btn-export-csv">📊 Export CSV</button>
+          <button class="tool-btn" id="btn-save-compare">⊕ Save for Comparison</button>
+          <button class="tool-btn" id="btn-compare">⚖ Compare Designs</button>
+          <div class="tool-group-label">Save Design</div>
+          <input type="text" id="save-name-input" class="save-input" placeholder="Design name…"/>
+          <button class="tool-btn" id="btn-save">💾 Save Current</button>
+          <button class="tool-btn" id="btn-restore-auto">↩ Restore Auto-Save</button>
+          <div id="saves-list" class="saves-list"></div>
+          <div class="tool-group-label">Best Scores</div>
+          <div id="lb-panel"></div>
+        </div>
       </div>
 
-      <div class="tool-section"><h3>Analysis</h3>
-        <button class="tool-btn" id="btn-report">📄 Engineering Report</button>
-        <button class="tool-btn" id="btn-export-csv">📊 Export Stress CSV</button>
-        <button class="tool-btn" id="btn-save-compare">⊕ Save for Comparison</button>
-        <button class="tool-btn" id="btn-compare">⚖ Compare Designs</button>
-      </div>
-      <div class="tool-section"><h3>Save Design</h3>
-        <input type="text" id="save-name-input" class="save-input" placeholder="Design name…"/>
-        <button class="tool-btn" id="btn-save">💾 Save Current</button>
-        <button class="tool-btn" id="btn-restore-auto">↩ Restore Auto-Save</button>
-        <div id="saves-list" class="saves-list"></div>
-      </div>
-      <div class="lb-section"><h3>Best Scores</h3><div id="lb-panel"></div></div>
     </aside>
 
+    <!-- ════ CANVAS ════ -->
     <div class="stage-wrap">
       <canvas id="stage" width="900" height="600"></canvas>
-      <div class="banner" id="banner"><div class="banner-card"><h2 id="banner-title">Result</h2><p id="banner-body">—</p><button class="btn-primary" id="banner-btn">Rebuild</button></div></div>
+      <div class="banner" id="banner">
+        <div class="banner-card">
+          <h2 id="banner-title">Result</h2>
+          <p id="banner-body">—</p>
+          <button class="btn-primary" id="banner-btn">Rebuild</button>
+        </div>
+      </div>
     </div>
 
-    <aside class="spawner-panel">
-      <h3 class="toolbar-h3">Spawn Vehicle</h3>
-      <button class="spawn-btn" data-type="bicycle"><div class="spawn-row"><span class="spawn-emoji">🚲</span><span class="spawn-name">Bicycle</span></div><div class="spawn-kg">15 kg</div></button>
-      <button class="spawn-btn" data-type="sedan"><div class="spawn-row"><span class="spawn-emoji">🚗</span><span class="spawn-name">Sedan</span></div><div class="spawn-kg">1,400 kg</div></button>
-      <button class="spawn-btn" data-type="van"><div class="spawn-row"><span class="spawn-emoji">🚐</span><span class="spawn-name">Van</span></div><div class="spawn-kg">2,800 kg</div></button>
-      <button class="spawn-btn" data-type="truck"><div class="spawn-row"><span class="spawn-emoji">🚚</span><span class="spawn-name">Box Truck</span></div><div class="spawn-kg">9,000 kg</div></button>
-      <button class="spawn-btn" data-type="bus"><div class="spawn-row"><span class="spawn-emoji">🚌</span><span class="spawn-name">City Bus</span></div><div class="spawn-kg">12,000 kg</div></button>
-      <button class="spawn-btn" data-type="semi"><div class="spawn-row"><span class="spawn-emoji">🚛</span><span class="spawn-name">Semi</span></div><div class="spawn-kg">18,000 kg</div></button>
-      <button class="spawn-btn danger" data-type="tank"><div class="spawn-row"><span class="spawn-emoji">🪖</span><span class="spawn-name">Tank</span></div><div class="spawn-kg">60,000 kg</div></button>
-      <button class="spawn-btn danger" data-type="train"><div class="spawn-row"><span class="spawn-emoji">🚂</span><span class="spawn-name">Train</span></div><div class="spawn-kg">200,000 kg</div></button>
+    <!-- ════ RIGHT SIDEBAR ════ -->
+    <aside class="sidebar sidebar-right">
 
-      <div class="challenge-section"><h3 class="toolbar-h3" style="margin-top:14px">Challenges</h3><div id="challenge-list"></div></div>
-
-      <div class="tips-section">
-        <h3 class="toolbar-h3" style="margin-top:14px">Quick Tips</h3>
-        <div class="tip-card">🔺 <strong>Triangles are strong.</strong> Every span needs diagonal bracing.</div>
-        <div class="tip-card">🌊 <strong>Resonance is real.</strong> Too many vehicles at once causes dangerous oscillation.</div>
-        <div class="tip-card">🟦 <strong>Blue tint = tension.</strong> Orange tint = compression. Watch beam modes.</div>
-        <div class="tip-card">🌉 <strong>Suspension:</strong> Cable to tower → screws → hangers → deck.</div>
-        <div class="tip-card">🔍 <strong>Scroll to zoom</strong> for precise beam placement on busy junctions.</div>
-        <div class="tip-card">🏙️ <strong>City Bridge:</strong> Grey beams are pre-built. Complete the gaps!</div>
+      <!-- 1: VEHICLES -->
+      <div class="panel-section open" data-section="vehicles">
+        <div class="panel-header veh-header" onclick="toggleSection(this)">
+          <span>🚗 Spawn Vehicle</span><span class="chevron">▾</span>
+        </div>
+        <div class="panel-body">
+          <button class="spawn-btn" data-type="bicycle"><span class="s-emoji">🚲</span><span class="s-info"><span class="s-name">Bicycle</span><span class="s-kg">15 kg</span></span></button>
+          <button class="spawn-btn" data-type="ambulance"><span class="s-emoji">🚑</span><span class="s-info"><span class="s-name">Ambulance</span><span class="s-kg">2,200 kg · fast</span></span></button>
+          <button class="spawn-btn" data-type="sedan"><span class="s-emoji">🚗</span><span class="s-info"><span class="s-name">Sedan</span><span class="s-kg">1,400 kg</span></span></button>
+          <button class="spawn-btn" data-type="van"><span class="s-emoji">🚐</span><span class="s-info"><span class="s-name">Van</span><span class="s-kg">2,800 kg</span></span></button>
+          <button class="spawn-btn" data-type="truck"><span class="s-emoji">🚚</span><span class="s-info"><span class="s-name">Box Truck</span><span class="s-kg">9,000 kg</span></span></button>
+          <button class="spawn-btn" data-type="bus"><span class="s-emoji">🚌</span><span class="s-info"><span class="s-name">City Bus</span><span class="s-kg">12,000 kg</span></span></button>
+          <button class="spawn-btn" data-type="monster"><span class="s-emoji">🛻</span><span class="s-info"><span class="s-name">Monster Truck</span><span class="s-kg">8,500 kg · wide</span></span></button>
+          <button class="spawn-btn" data-type="semi"><span class="s-emoji">🚛</span><span class="s-info"><span class="s-name">Semi</span><span class="s-kg">18,000 kg</span></span></button>
+          <button class="spawn-btn danger" data-type="tank"><span class="s-emoji">🪖</span><span class="s-info"><span class="s-name">Tank</span><span class="s-kg">60,000 kg</span></span></button>
+          <button class="spawn-btn danger" data-type="train"><span class="s-emoji">🚂</span><span class="s-info"><span class="s-name">Train</span><span class="s-kg">200,000 kg</span></span></button>
+          <button class="spawn-btn danger" data-type="rocketsled"><span class="s-emoji">🚀</span><span class="s-info"><span class="s-name">Rocket Sled</span><span class="s-kg">300 kg · extreme speed</span></span></button>
+        </div>
       </div>
 
-      <div class="stats-section">
-        <h3 class="toolbar-h3" style="margin-top:14px">Live Stats</h3>
-        <div class="stat-row"><span class="stat-label">Vehicles crossed</span><span class="stat-val" id="stat-crossed">—</span></div>
-        <div class="stat-row"><span class="stat-label">Max load survived</span><span class="stat-val" id="stat-maxload">—</span></div>
-        <div class="stat-row"><span class="stat-label">Beams broken</span><span class="stat-val" id="stat-broken">—</span></div>
-        <div class="stat-row"><span class="stat-label">Peak stress</span><span class="stat-val" id="stat-stress">—</span></div>
+      <!-- 2: CHALLENGES -->
+      <div class="panel-section open" data-section="challenges">
+        <div class="panel-header ch-header" onclick="toggleSection(this)">
+          <span>🎯 Challenges</span><span class="chevron">▾</span>
+        </div>
+        <div class="panel-body">
+          <div id="challenge-list"></div>
+        </div>
       </div>
 
-      <div class="ach-panel">
-        <h3 class="toolbar-h3" style="margin-top:14px">Achievements</h3>
-        <div id="ach-list"></div>
+      <!-- 3: STATS & ACHIEVEMENTS -->
+      <div class="panel-section open" data-section="stats">
+        <div class="panel-header stats-header-sec" onclick="toggleSection(this)">
+          <span>📊 Stats & Achievements</span><span class="chevron">▾</span>
+        </div>
+        <div class="panel-body">
+          <div class="stat-row"><span class="stat-label">Vehicles crossed</span><span class="stat-val" id="stat-crossed">—</span></div>
+          <div class="stat-row"><span class="stat-label">Max load</span><span class="stat-val" id="stat-maxload">—</span></div>
+          <div class="stat-row"><span class="stat-label">Beams broken</span><span class="stat-val" id="stat-broken">—</span></div>
+          <div class="stat-row"><span class="stat-label">Peak stress</span><span class="stat-val" id="stat-stress">—</span></div>
+          <div class="tool-group-label" style="margin-top:10px">Achievements</div>
+          <div id="ach-list"></div>
+        </div>
       </div>
+
+      <!-- 4: TIPS -->
+      <div class="panel-section open" data-section="tips">
+        <div class="panel-header tips-header-sec" onclick="toggleSection(this)">
+          <span>💡 Tips & Reference</span><span class="chevron">▾</span>
+        </div>
+        <div class="panel-body">
+          <div class="tip-card">🔺 <strong>Triangles are strong.</strong> Every span needs diagonal bracing or it will sag.</div>
+          <div class="tip-card">🌊 <strong>Resonance builds.</strong> Multiple vehicles cause dangerous oscillation over time.</div>
+          <div class="tip-card">🟦 <strong>Blue = tension.</strong> Orange = compression. Use Force Diagram to see load paths.</div>
+          <div class="tip-card">🌉 <strong>Suspension:</strong> Cable from tower top → junction screws → vertical hangers → deck.</div>
+          <div class="tip-card">🔍 <strong>Scroll to zoom</strong> on tight junctions. Pinch on mobile.</div>
+          <div class="tip-card">⚙️ <strong>Screws:</strong> Click any existing beam to add a junction point anywhere along it.</div>
+          <div class="tip-card">💛 <strong>Amber → Red → Snap.</strong> Watch for red beams before spawning heavier vehicles.</div>
+          <div class="tool-group-label" style="margin-top:10px">Shortcuts</div>
+          <div class="shortcut-mini"><span class="sc-k">Ctrl+Z</span> Undo &nbsp; <span class="sc-k">S</span> Symmetry</div>
+          <div class="shortcut-mini"><span class="sc-k">M</span> Slow-mo &nbsp; <span class="sc-k">N</span> Night</div>
+          <div class="shortcut-mini"><span class="sc-k">D</span> Delete &nbsp; <span class="sc-k">R</span> Replay</div>
+          <div class="shortcut-mini"><span class="sc-k">?</span> All shortcuts &nbsp; <span class="sc-k">Esc</span> Reset zoom</div>
+          <div id="visit-count" class="visit-label"></div>
+        </div>
+      </div>
+
     </aside>
+
   </main>
 
+  <!-- ── BOTTOM BAR ── -->
   <footer class="hud-bottom">
     <div class="bottom-strip">
-      <div class="legend"><span>Compression</span><div class="legend-bar-comp"></div><span>→</span><div class="legend-bar"></div><span>Tension / Stress → Snap</span></div>
+      <div class="legend"><span>Compression</span><div class="legend-bar-comp"></div><span>→</span><div class="legend-bar"></div><span>Tension/Stress → Snap</span></div>
       <div id="instructions">Drag from an anchor point to draw your first beam.</div>
-      <div class="shortcuts"><kbd>Ctrl+Z</kbd> undo · <kbd>S</kbd> sym · <kbd>M</kbd> slow · <kbd>N</kbd> night · <kbd>D</kbd> delete · <kbd>R</kbd> replay · <kbd>Esc</kbd> reset zoom</div>
+      <div class="shortcuts"><kbd>Ctrl+Z</kbd> undo · <kbd>S</kbd> sym · <kbd>M</kbd> slow · <kbd>N</kbd> night · <kbd>D</kbd> delete · <kbd>?</kbd> all keys</div>
     </div>
   </footer>
+
+</div><!-- end app-shell -->
+
+<!-- ── OVERLAYS ── -->
+<div id="shortcuts-modal" class="shortcuts-modal">
+  <div class="shortcuts-card">
+    <h2>⌨️ Keyboard Shortcuts</h2>
+    <div class="shortcut-grid">
+      <div class="shortcut-row"><span class="sc-key">Ctrl+Z</span><span class="sc-action">Undo</span></div>
+      <div class="shortcut-row"><span class="sc-key">S</span><span class="sc-action">Symmetry</span></div>
+      <div class="shortcut-row"><span class="sc-key">M</span><span class="sc-action">Slow motion</span></div>
+      <div class="shortcut-row"><span class="sc-key">N</span><span class="sc-action">Night mode</span></div>
+      <div class="shortcut-row"><span class="sc-key">D</span><span class="sc-action">Delete mode</span></div>
+      <div class="shortcut-row"><span class="sc-key">R</span><span class="sc-action">Replay</span></div>
+      <div class="shortcut-row"><span class="sc-key">?</span><span class="sc-action">This list</span></div>
+      <div class="shortcut-row"><span class="sc-key">Esc</span><span class="sc-action">Reset zoom</span></div>
+      <div class="shortcut-row"><span class="sc-key">Scroll</span><span class="sc-action">Zoom</span></div>
+      <div class="shortcut-row"><span class="sc-key">Pinch</span><span class="sc-action">Zoom (touch)</span></div>
+    </div>
+    <button class="shortcuts-close-btn" id="shortcuts-close">Close</button>
+  </div>
 </div>
 
 <div id="tutorial-overlay" class="tutorial-overlay" style="display:none">
@@ -149,36 +274,13 @@
     <div class="tut-step" id="tut-step">1 / 6</div>
     <h2 id="tut-title">Welcome</h2>
     <p id="tut-body">…</p>
-    <div class="tut-buttons"><button class="btn-secondary" id="btn-tut-skip">Skip</button><button class="btn-primary" id="btn-tut-next">Next →</button></div>
-  </div>
-</div>
-
-<div id="ach-toast" class="ach-toast">
-  <span class="ach-icon"></span>
-  <div><div class="ach-name"></div><div class="ach-desc"></div></div>
-</div>
-
-<!-- Shortcuts Modal -->
-<div id="shortcuts-modal" class="shortcuts-modal">
-  <div class="shortcuts-card">
-    <h2>⌨️ Keyboard Shortcuts</h2>
-    <div class="shortcut-grid">
-      <div class="shortcut-row"><span class="sc-key">Ctrl+Z</span><span class="sc-action">Undo last action</span></div>
-      <div class="shortcut-row"><span class="sc-key">S</span><span class="sc-action">Symmetry mode</span></div>
-      <div class="shortcut-row"><span class="sc-key">M</span><span class="sc-action">Slow motion</span></div>
-      <div class="shortcut-row"><span class="sc-key">N</span><span class="sc-action">Night mode</span></div>
-      <div class="shortcut-row"><span class="sc-key">D</span><span class="sc-action">Delete mode</span></div>
-      <div class="shortcut-row"><span class="sc-key">R</span><span class="sc-action">Replay pause/play</span></div>
-      <div class="shortcut-row"><span class="sc-key">?</span><span class="sc-action">This shortcut list</span></div>
-      <div class="shortcut-row"><span class="sc-key">Esc</span><span class="sc-action">Reset zoom / dismiss</span></div>
-      <div class="shortcut-row"><span class="sc-key">Scroll</span><span class="sc-action">Zoom in/out</span></div>
-      <div class="shortcut-row"><span class="sc-key">Pinch</span><span class="sc-action">Zoom (touch)</span></div>
+    <div class="tut-buttons">
+      <button class="btn-secondary" id="btn-tut-skip">Skip</button>
+      <button class="btn-primary" id="btn-tut-next">Next →</button>
     </div>
-    <button class="shortcuts-close-btn" id="shortcuts-close">Close</button>
   </div>
 </div>
 
-<!-- Lesson Panel -->
 <div id="lesson-panel">
   <div class="lesson-header">
     <div id="lesson-title">Lesson</div>
@@ -191,23 +293,17 @@
     <strong style="font-size:13px;color:#2e7d32;">✓ Complete! Engineering explanation:</strong>
     <p id="lesson-explain-text"></p>
   </div>
-  <div class="lesson-btns">
-    <button id="lesson-next">Next Lesson →</button>
-  </div>
+  <div class="lesson-btns"><button id="lesson-next">Next Lesson →</button></div>
 </div>
 
-<!-- Failure Analysis -->
 <div id="failure-analysis">
   <button id="fa-close">✕</button>
   <div id="fa-member">Member type</div>
   <div id="fa-msg">Analysis</div>
 </div>
 
-<!-- Quiz Panel -->
 <div id="quiz-panel"></div>
-
-<!-- Visit counter (hidden, just tracking) -->
-<div id="visit-count" style="display:none"></div>
+<div id="ach-toast" class="ach-toast"><span class="ach-icon"></span><div><div class="ach-name"></div><div class="ach-desc"></div></div></div>
 
 <script src="script.js"></script>
 </body>
