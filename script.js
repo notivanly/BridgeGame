@@ -1344,3 +1344,64 @@ function answerQuiz(qi,chosen,correct,explain,btn){
 }
 function closeQuiz(){const p=document.getElementById('quiz-panel');if(p)p.style.display='none';}
 document.getElementById('btn-quiz')?.addEventListener('click',startQuiz);
+
+
+// ============================================================
+// NEW LEVELS (appended to LEVELS array at runtime)
+// ============================================================
+(function addNewLevels(){
+  if(LEVELS.find(l=>l.id===5))return;
+  LEVELS.push(
+    {id:5,name:'Highway',    chasmLeft:140,chasmRight:760,budget:700000,pier:true, quake:false,desc:'Massive highway span. Only carbon fiber trusses will hold the train.'},
+    {id:6,name:'Mini Gorge', chasmLeft:340,chasmRight:560,budget:25000, pier:false,quake:false,desc:'Tiny span, tiny budget. Survive a sedan for under $3,000.'}
+  );
+})();
+
+// ============================================================
+// NEW VEHICLES (merged into VEHICLE_TYPES at runtime)
+// ============================================================
+(function addNewVehicles(){
+  if(VEHICLE_TYPES.ambulance)return;
+  Object.assign(VEHICLE_TYPES,{
+    ambulance: {label:'Ambulance',  kg:2200,  force:1.1, w:52, h:22, color:'#cc2222', speed:4.0, emoji:'🚑'},
+    monster:   {label:'Monster Truck',kg:8500,force:4.8, w:90, h:44, color:'#5a3a0a', speed:1.8, emoji:'🛻'},
+    rocketsled:{label:'Rocket Sled', kg:300,  force:0.1, w:60, h:16, color:'#cc4400', speed:9.0, emoji:'🚀'},
+  });
+})();
+
+// ============================================================
+// NEW CHALLENGES
+// ============================================================
+(function addNewChallenges(){
+  const newOnes=[
+    {id:20,level:5,name:'Highway Semi',  desc:'Survive 2 semis on the widest span',      budget:600000,timeLimit:0,  noScrews:false,materialLock:null,     objective:{vehicle:'semi',count:2}},
+    {id:21,level:5,name:'Train Boss',    desc:'Survive the Train on the Highway span',    budget:700000,timeLimit:0,  noScrews:false,materialLock:null,     objective:{vehicle:'train'}},
+    {id:22,level:5,name:'Carbon Only',   desc:'Survive a semi using only Carbon Fiber',   budget:700000,timeLimit:0,  noScrews:false,materialLock:['carbon'],objective:{vehicle:'semi'}},
+    {id:23,level:6,name:'Budget Sprint', desc:'Survive a sedan for under $3,000',         budget:3000,  timeLimit:90, noScrews:false,materialLock:null,     objective:{vehicle:'sedan',maxCost:3000}},
+    {id:24,level:6,name:'Mini Monster',  desc:'Survive the Monster Truck on the mini span',budget:25000,timeLimit:0,  noScrews:false,materialLock:null,     objective:{vehicle:'monster'}},
+    {id:25,level:1,name:'Rocket Run',    desc:'Survive 3 Rocket Sleds — they are FAST',  budget:200000,timeLimit:120,noScrews:false,materialLock:null,     objective:{vehicle:'rocketsled',count:3}},
+    {id:26,level:2,name:'Ambulance Rush',desc:'Survive 5 ambulances — they come in fast', budget:400000,timeLimit:180,noScrews:false,materialLock:null,     objective:{vehicle:'ambulance',count:5}},
+    {id:27,level:0,name:'Monster Gorge', desc:'Survive the Monster Truck on the narrow gorge',budget:100000,timeLimit:0,noScrews:false,materialLock:null,  objective:{vehicle:'monster'}},
+  ];
+  newOnes.forEach(c=>{if(!CHALLENGES.find(x=>x.id===c.id))CHALLENGES.push(c);});
+})();
+
+// ============================================================
+// PANEL SECTION TOGGLE
+// ============================================================
+function toggleSection(header){
+  const section=header.closest('.panel-section');
+  section.classList.toggle('open');
+}
+
+// ============================================================
+// NIGHT MODE UI SYNC (patch)
+// ============================================================
+const _nightBtnEl=document.getElementById('btn-night');
+if(_nightBtnEl){
+  _nightBtnEl.addEventListener('click',()=>{
+    nightMode=!nightMode;
+    document.body.classList.toggle('night-ui',nightMode);
+    refreshHUD();
+  },true);
+}
