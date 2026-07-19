@@ -245,12 +245,20 @@ function findOrCreateJointAt(x,y,fixed){
   if(ex)return ex;
   const j={id:nextId++,x,y,fixed};joints.push(j);return j;
 }
+let displayScaleX=1, displayScaleY=1;
+
 function resizeCanvasForDPR(){
   dpr=window.devicePixelRatio||1;
-  canvas.width=W*dpr;
-  canvas.height=H*dpr;
+  const rect=canvas.getBoundingClientRect();
+  const cw=Math.round((rect.width||W)*dpr);
+  const ch=Math.round((rect.height||H)*dpr);
+  if(canvas.width!==cw||canvas.height!==ch){
+    canvas.width=cw; canvas.height=ch;
+  }
+  displayScaleX=(rect.width||W)/W;
+  displayScaleY=(rect.height||H)/H;
 }
-window.addEventListener('resize',()=>{ /* CSS handles display scaling */ });
+window.addEventListener('resize',()=>{resizeCanvasForDPR();});
 
 function buildLevelUI(){const wrap=document.getElementById('level-tabs');if(!wrap)return;wrap.innerHTML='';LEVELS.forEach((lv,i)=>{const btn=document.createElement('button');btn.className='level-tab'+(i===currentLevel?' active':'');btn.textContent=lv.name;btn.addEventListener('click',()=>{currentLevel=i;challengeMode=null;resetGame();buildLevelUI();buildChallengeUI();});wrap.appendChild(btn);});const desc=document.getElementById('level-desc');if(desc)desc.textContent=lvl().desc;}
 function buildChallengeUI(){const wrap=document.getElementById('challenge-list');if(!wrap)return;const rel=CHALLENGES.filter(c=>c.level===currentLevel);wrap.innerHTML=rel.map(c=>`<button class="challenge-btn" data-cid="${c.id}"><span class="ch-name">${c.name}</span><span class="ch-desc">${c.desc}</span></button>`).join('');wrap.querySelectorAll('.challenge-btn').forEach(btn=>btn.addEventListener('click',()=>startChallenge(parseInt(btn.dataset.cid))));}
@@ -316,7 +324,13 @@ canvas.addEventListener('pointerup',e=>{
 canvas.addEventListener('pointerleave',()=>{drag=null;hoverBeam=null;});
 
 function mirrorJoint(j,cx){if(j.fixed){const mx=cx+(cx-j.x),my=j.y;return joints.find(jj=>jj.fixed&&Math.abs(jj.x-mx)<8&&Math.abs(jj.y-my)<8)||addJoint(mx,my,false);}const mx=cx+(cx-j.x),my=j.y;return findNearestJoint(mx,my,10)||addJoint(mx,my,false);}
-function canvasPos(e){const r=canvas.getBoundingClientRect();const cssX=(e.clientX-r.left)*(W/r.width);const cssY=(e.clientY-r.top)*(H/r.height);return{x:(cssX-panX)/zoom,y:(cssY-panY)/zoom};}
+function canvasPos(e){
+  const r=canvas.getBoundingClientRect();
+  // Convert CSS mouse position → game coordinate space
+  const cssX=(e.clientX-r.left)/displayScaleX;
+  const cssY=(e.clientY-r.top)/displayScaleY;
+  return{x:(cssX-panX)/zoom,y:(cssY-panY)/zoom};
+}
 
 // ============================================================
 // Build helpers
@@ -531,13 +545,20 @@ function loop(){
 }
 
 function draw(){
-  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
-  ctx.setTransform(dpr*zoom,0,0,dpr*zoom,panX*dpr,panY*dpr);
+  resizeCanvasForDPR();
+  // Clear at full native resolution
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // Scale: game coords → CSS display pixels → physical pixels
+  // This makes content fill the container at native sharpness
+  const sx=dpr*displayScaleX*zoom;
+  const sy=dpr*displayScaleY*zoom;
+  ctx.setTransform(sx,0,0,sy,panX*dpr*displayScaleX,panY*dpr*displayScaleY);
   drawSky();drawTerrain();
   if(mode==='build'){drawSpanDimension();drawAnchors();drawBeamsBuildMode();drawJointsBuildMode();if(drag&&activeMaterial!=='delete'&&activeMaterial!=='screw')drawDragLine();if(buildTimerActive)drawTimer();}
   else{drawTrails();drawBeamsPhysics();drawFallingBeams();drawSimJoints();drawDebris();drawSplash();drawVehicles();drawOverlays();drawInspector();drawForceOverlay();if(mode==='replay')drawReplayOverlay();}
   if(rainActive)drawRain();
-  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.setTransform(1,0,0,1,0,0);
 }
 
 // Sky
