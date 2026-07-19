@@ -245,7 +245,14 @@ function findOrCreateJointAt(x,y,fixed){
   if(ex)return ex;
   const j={id:nextId++,x,y,fixed};joints.push(j);return j;
 }
-function resizeCanvasForDPR(){dpr=window.devicePixelRatio||1;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';}
+function resizeCanvasForDPR(){
+  dpr=window.devicePixelRatio||1;
+  const rect=canvas.getBoundingClientRect();
+  const dispW=rect.width||W, dispH=rect.height||H;
+  canvas.width=Math.round(dispW*dpr);
+  canvas.height=Math.round(dispH*dpr);
+}
+window.addEventListener('resize',()=>{resizeCanvasForDPR();});
 
 function buildLevelUI(){const wrap=document.getElementById('level-tabs');if(!wrap)return;wrap.innerHTML='';LEVELS.forEach((lv,i)=>{const btn=document.createElement('button');btn.className='level-tab'+(i===currentLevel?' active':'');btn.textContent=lv.name;btn.addEventListener('click',()=>{currentLevel=i;challengeMode=null;resetGame();buildLevelUI();buildChallengeUI();});wrap.appendChild(btn);});const desc=document.getElementById('level-desc');if(desc)desc.textContent=lvl().desc;}
 function buildChallengeUI(){const wrap=document.getElementById('challenge-list');if(!wrap)return;const rel=CHALLENGES.filter(c=>c.level===currentLevel);wrap.innerHTML=rel.map(c=>`<button class="challenge-btn" data-cid="${c.id}"><span class="ch-name">${c.name}</span><span class="ch-desc">${c.desc}</span></button>`).join('');wrap.querySelectorAll('.challenge-btn').forEach(btn=>btn.addEventListener('click',()=>startChallenge(parseInt(btn.dataset.cid))));}
