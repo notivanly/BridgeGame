@@ -247,12 +247,10 @@ function findOrCreateJointAt(x,y,fixed){
 }
 function resizeCanvasForDPR(){
   dpr=window.devicePixelRatio||1;
-  const rect=canvas.getBoundingClientRect();
-  const dispW=rect.width||W, dispH=rect.height||H;
-  canvas.width=Math.round(dispW*dpr);
-  canvas.height=Math.round(dispH*dpr);
+  canvas.width=W*dpr;
+  canvas.height=H*dpr;
 }
-window.addEventListener('resize',()=>{resizeCanvasForDPR();});
+window.addEventListener('resize',()=>{ /* CSS handles display scaling */ });
 
 function buildLevelUI(){const wrap=document.getElementById('level-tabs');if(!wrap)return;wrap.innerHTML='';LEVELS.forEach((lv,i)=>{const btn=document.createElement('button');btn.className='level-tab'+(i===currentLevel?' active':'');btn.textContent=lv.name;btn.addEventListener('click',()=>{currentLevel=i;challengeMode=null;resetGame();buildLevelUI();buildChallengeUI();});wrap.appendChild(btn);});const desc=document.getElementById('level-desc');if(desc)desc.textContent=lvl().desc;}
 function buildChallengeUI(){const wrap=document.getElementById('challenge-list');if(!wrap)return;const rel=CHALLENGES.filter(c=>c.level===currentLevel);wrap.innerHTML=rel.map(c=>`<button class="challenge-btn" data-cid="${c.id}"><span class="ch-name">${c.name}</span><span class="ch-desc">${c.desc}</span></button>`).join('');wrap.querySelectorAll('.challenge-btn').forEach(btn=>btn.addEventListener('click',()=>startChallenge(parseInt(btn.dataset.cid))));}
@@ -570,8 +568,12 @@ function drawTerrain(){
   [[CL()-18,GROUND_Y-TOWER_H],[CR()+18,GROUND_Y-TOWER_H]].forEach(([tx,ty])=>{ctx.fillRect(tx-5,ty,10,GROUND_Y-ty+5);ctx.fillRect(tx-18,ty+30,36,6);ctx.fillRect(tx-14,ty+55,28,5);ctx.save();ctx.fillStyle='#64b4ff';if(nightMode){ctx.shadowBlur=15;ctx.shadowColor='#64b4ff';}ctx.beginPath();ctx.arc(tx,ty,5,0,Math.PI*2);ctx.fill();ctx.restore();});
   ctx.fillStyle=nightMode?'#1e2e38':'#3a4a52';ctx.fillRect(0,GROUND_Y,CL(),H-GROUND_Y);ctx.fillRect(CR(),GROUND_Y,W-CR(),H-GROUND_Y);
   ctx.strokeStyle='rgba(255,255,255,0.07)';ctx.lineWidth=1;
+  ctx.save();ctx.beginPath();ctx.rect(0,GROUND_Y,CL(),H-GROUND_Y);ctx.clip();
   for(let i=-H;i<CL()+H;i+=14){ctx.beginPath();ctx.moveTo(i,GROUND_Y);ctx.lineTo(i+(H-GROUND_Y),H);ctx.stroke();}
+  ctx.restore();
+  ctx.save();ctx.beginPath();ctx.rect(CR(),GROUND_Y,W-CR(),H-GROUND_Y);ctx.clip();
   for(let i=CR()-H;i<W+H;i+=14){ctx.beginPath();ctx.moveTo(i,GROUND_Y);ctx.lineTo(i+(H-GROUND_Y),H);ctx.stroke();}
+  ctx.restore();
   ctx.strokeStyle='#cfe3ee';ctx.lineWidth=2;
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);ctx.lineTo(CL(),GROUND_Y);ctx.stroke();
   ctx.beginPath();ctx.moveTo(CR(),GROUND_Y);ctx.lineTo(W,GROUND_Y);ctx.stroke();
