@@ -1046,25 +1046,27 @@ function drawRocketSled(v){
 function drawVehicles(){
   for(const v of vehicles){
     const type=VEHICLE_TYPES[v.typeKey];
-    const h=type.h, vy=v.y-h/2-2;
+    if(!type)continue;
+    // Merge type data into v so draw functions can access v.w, v.h, v.color etc.
+    const vd={...type,...v};
+    const vy=v.y-type.h/2-2;
     ctx.save();
     ctx.translate(v.x,vy);
     switch(v.typeKey){
-      case 'bicycle':    drawBicycle(v);    break;
-      case 'ambulance':  drawAmbulance(v);  break;
-      case 'sedan':      drawSedan(v);      break;
-      case 'van':        drawVan(v);        break;
-      case 'truck':      drawBoxTruck(v);   break;
-      case 'bus':        drawBus(v);        break;
-      case 'monster':    drawMonsterTruck(v);break;
-      case 'semi':       drawSemi(v);       break;
-      case 'tank':       drawTank(v);       break;
-      case 'train':      drawTrain(v);      break;
-      case 'rocketsled': drawRocketSled(v); break;
+      case 'bicycle':    drawBicycle(vd);    break;
+      case 'ambulance':  drawAmbulance(vd);  break;
+      case 'sedan':      drawSedan(vd);      break;
+      case 'van':        drawVan(vd);        break;
+      case 'truck':      drawBoxTruck(vd);   break;
+      case 'bus':        drawBus(vd);        break;
+      case 'monster':    drawMonsterTruck(vd);break;
+      case 'semi':       drawSemi(vd);       break;
+      case 'tank':       drawTank(vd);       break;
+      case 'train':      drawTrain(vd);      break;
+      case 'rocketsled': drawRocketSled(vd); break;
       default:
-        // Fallback generic
-        rrPath(-type.w/2,-h/2,type.w,h,4);
-        ctx.fillStyle=type.color; ctx.fill();
+        rrPath(-type.w/2,-type.h/2,type.w,type.h,4);
+        ctx.fillStyle=type.color;ctx.fill();
     }
     ctx.restore();
   }
