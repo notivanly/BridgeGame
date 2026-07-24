@@ -120,12 +120,20 @@
           <span>🧪 Test Tools</span><span class="chevron">▾</span>
         </div>
         <div class="panel-body">
+          <button class="tool-btn" id="btn-sandbox">🟢 Sandbox Mode</button>
+          <button class="tool-btn" id="btn-autospawn">🤖 Auto-Spawn</button>
           <button class="tool-btn" id="btn-slow">🐢 Slow Motion</button>
           <button class="tool-btn" id="btn-force-overlay">⟷ Force Diagram</button>
           <button class="tool-btn" id="btn-quiz">🧠 Take Quiz</button>
           <button class="tool-btn" id="btn-wind">💨 Wind Burst</button>
           <button class="tool-btn" id="btn-quake">🌋 Earthquake</button>
           <button class="tool-btn" id="btn-rain">🌧 Rain Storm</button>
+          <div class="tool-group-label">Time Scale</div>
+          <div class="time-row">
+            <button class="tool-btn time-btn" data-speed="0.5">0.5×</button>
+            <button class="tool-btn time-btn active-tool" data-speed="1">1×</button>
+            <button class="tool-btn time-btn" data-speed="2">2×</button>
+          </div>
         </div>
       </div>
 
@@ -147,6 +155,8 @@
           <div id="saves-list" class="saves-list"></div>
           <div class="tool-group-label">Best Scores</div>
           <div id="lb-panel"></div>
+          <div class="tool-group-label" style="margin-top:10px">🕐 Update Log</div>
+          <div id="update-log"></div>
         </div>
       </div>
 
