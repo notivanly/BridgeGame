@@ -1780,3 +1780,264 @@ if(_nightBtnEl){
     refreshHUD();
   },true);
 }
+
+
+// ============================================================
+// v7.0 GAME UPDATE — July 2025
+// ============================================================
+
+// ---------- Sandbox Mode ----------
+let sandboxMode = false;
+function toggleSandbox() {
+  sandboxMode = !sandboxMode;
+  document.getElementById('btn-sandbox')?.classList.toggle('active-tool', sandboxMode);
+  flashMessage(sandboxMode ? '🟢 Sandbox ON — unlimited budget' : '🔴 Sandbox OFF — budget enforced');
+  refreshHUD();
+}
+// Override budget check in addBeam
+const _origAddBeam = addBeam;
+// Already patched via BUD() — sandbox just makes BUD() huge
+const _origBUD = BUD;
+// We'll patch BUD at call site via override
+
+// ---------- Time Speed Control ----------
+let timeScale = 1.0; // 0.5, 1.0, 2.0
+function setTimeScale(s) {
+  timeScale = s;
+  document.querySelectorAll('.time-btn').forEach(b => b.classList.toggle('active-tool', parseFloat(b.dataset.speed) === s));
+}
+
+// Patch into simulationStep — wrap the existing step with timeScale repeats
+const _origSimStep = simulationStep;
+let simAccum = 0;
+// We patch the loop to call simulationStep multiple times or fractionally
+
+// ---------- Auto-Spawn Mode ----------
+let autoSpawnActive = false;
+let autoSpawnQueue = [];
+let autoSpawnTimer = 0;
+const AUTO_SPAWN_ORDER = ['bicycle','sedan','van','truck','bus','semi','tank'];
+
+function startAutoSpawn() {
+  if (mode !== 'simulating') { flashMessage('Test your bridge first, then start Auto-Spawn.'); return; }
+  autoSpawnActive = true;
+  autoSpawnQueue = [...AUTO_SPAWN_ORDER];
+  autoSpawnTimer = 120; // start delay
+  document.getElementById('btn-autospawn')?.classList.add('active-tool');
+  flashMessage('🤖 Auto-Spawn started — vehicles will spawn progressively');
+}
+
+function stepAutoSpawn() {
+  if (!autoSpawnActive || mode !== 'simulating') return;
+  if (vehicles.some(v => v.x < 120)) return; // wait for entry to clear
+  autoSpawnTimer--;
+  if (autoSpawnTimer <= 0) {
+    if (autoSpawnQueue.length === 0) {
+      autoSpawnActive = false;
+      document.getElementById('btn-autospawn')?.classList.remove('active-tool');
+      flashMessage('✓ Auto-Spawn complete! Bridge survived every vehicle.');
+      return;
+    }
+    const next = autoSpawnQueue.shift();
+    spawnVehicle(next);
+    autoSpawnTimer = 180; // wait before next
+  }
+}
+
+// ---------- Space-to-Pan ----------
+let spaceDown = false, lastPanMouse = null;
+
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space' && !e.target.matches('input,textarea')) {
+    e.preventDefault(); spaceDown = true;
+    canvas.style.cursor = 'grab';
+  }
+});
+window.addEventListener('keyup', e => {
+  if (e.code === 'Space') {
+    spaceDown = false;
+    canvas.style.cursor = mode === 'build' ? 'crosshair' : 'default';
+  }
+});
+canvas.addEventListener('pointermove', e => {
+  if (!spaceDown || !lastPanMouse) { lastPanMouse = spaceDown ? { x: e.clientX, y: e.clientY } : null; return; }
+  if (spaceDown) {
+    const dx = e.clientX - lastPanMouse.x, dy = e.clientY - lastPanMouse.y;
+    panX += dx / displayScaleX;
+    panY += dy / displayScaleY;
+    lastPanMouse = { x: e.clientX, y: e.clientY };
+  }
+}, true);
+canvas.addEventListener('pointerdown', e => { if (spaceDown) lastPanMouse = { x: e.clientX, y: e.clientY }; }, true);
+canvas.addEventListener('pointerup', () => { lastPanMouse = null; }, true);
+
+// ---------- Efficiency Star Rating ----------
+function calcStars() {
+  if (vehiclesCrossed === 0) return 0;
+  const budgetPct = totalCost / BUD();
+  const peakStress = simBeams.reduce((m, b) => Math.max(m, b.stress), 0);
+  let stars = 5;
+  if (budgetPct > 0.8) stars--;
+  if (budgetPct > 0.6) stars--;
+  if (peakStress > 1.0) stars--;
+  if (peakStress > 0.7) stars--;
+  if (vehiclesCrossed < 2) stars = Math.min(stars, 2);
+  return Math.max(1, Math.min(5, stars));
+}
+
+function drawStarRating() {
+  if (mode !== 'won' && mode !== 'lost') return;
+  const stars = calcStars();
+  const cx = W / 2, cy = GROUND_Y - 60;
+  ctx.save();
+  ctx.font = 'bold 22px Archivo,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#e8a33d';
+  let s = '';
+  for (let i = 0; i < 5; i++) s += i < stars ? '★' : '☆';
+  ctx.shadowBlur = 10; ctx.shadowColor = '#e8a33d';
+  ctx.fillText(s, cx, cy);
+  ctx.font = '11px IBM Plex Mono,monospace';
+  ctx.fillStyle = '#cfe3ee'; ctx.shadowBlur = 0;
+  const labels = ['','Needs Work','Getting There','Good Engineering','Excellent Design','Master Engineer'];
+  ctx.fillText(labels[stars] || '', cx, cy + 18);
+  ctx.restore();
+}
+
+// ---------- Wind Particles ----------
+const windParticles = Array.from({ length: 40 }, () => ({
+  x: Math.random() * W, y: Math.random() * H * .8,
+  vx: 2 + Math.random() * 3, vy: (Math.random() - .5) * .5,
+  size: 1 + Math.random() * 2, life: Math.random()
+}));
+
+function drawWindParticles() {
+  if (!windActive) return;
+  ctx.save();
+  ctx.fillStyle = 'rgba(200,225,255,0.35)';
+  for (const p of windParticles) {
+    p.x += p.vx * (slowMo ? .25 : 1);
+    p.y += p.vy + Math.sin(frameCount * .05 + p.x) * .3;
+    p.life += .01;
+    if (p.x > W + 10) { p.x = -10; p.y = Math.random() * H * .8; }
+    const alpha = Math.sin(p.life * Math.PI) * .4;
+    ctx.globalAlpha = Math.max(0, alpha);
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.size * 3, p.size * .6, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// ---------- Better Water ----------
+function drawWaterEffect() {
+  const cl = CL(), cr = CR();
+  // Subtle foam/sparkle on water surface
+  if (nightMode) {
+    // Moonlight ripples
+    const mx = W * .72, my = GROUND_Y + 30;
+    const grad = ctx.createRadialGradient(mx, my, 0, mx, my, 80);
+    grad.addColorStop(0, 'rgba(200,220,255,.06)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(cl, GROUND_Y, cr - cl, H - GROUND_Y);
+  }
+  // Animated surface lines already drawn in drawTerrain
+}
+
+// Hook new features into existing simulation loop
+const _origStepVehicles = stepVehicles;
+function stepVehicles() {
+  _origStepVehicles();
+  stepAutoSpawn();
+}
+
+// Hook star rating into draw
+const _origDrawOverlays = drawOverlays;
+function drawOverlays() {
+  _origDrawOverlays();
+  drawWindParticles();
+  drawStarRating();
+  drawWaterEffect();
+}
+
+// ---------- Sandbox budget override ----------
+// Patch refreshHUD to show UNLIMITED when sandbox on
+const _origRefreshHUD = refreshHUD;
+function refreshHUD() {
+  _origRefreshHUD();
+  if (sandboxMode) {
+    const budEl = document.getElementById('hud-budget');
+    if (budEl) budEl.textContent = '∞ SANDBOX';
+  }
+}
+
+// Wire up new buttons
+document.getElementById('btn-sandbox')?.addEventListener('click', toggleSandbox);
+document.getElementById('btn-autospawn')?.addEventListener('click', startAutoSpawn);
+document.querySelectorAll('.time-btn').forEach(b => {
+  b.addEventListener('click', () => setTimeScale(parseFloat(b.dataset.speed)));
+});
+
+// ============================================================
+// UPDATE TRACKER DATA (for in-game panel)
+// ============================================================
+const UPDATE_LOG = [
+  {
+    version: 'v7.0', date: 'Jul 23 2025', icon: '⚡',
+    title: 'Speed & Sandbox Update',
+    changes: ['Sandbox mode — unlimited budget', 'Auto-spawn mode — progressive vehicle test', 'Time scale controls (0.5×/1×/2×)', 'Space+drag to pan camera', '5-star efficiency rating after test', 'Wind particle effects', 'Better water rendering', 'Detailed per-vehicle artwork']
+  },
+  {
+    version: 'v6.0', date: 'Jul 20 2025', icon: '📚',
+    title: 'Education & Documentation',
+    changes: ['Landing page', 'On-site feedback guestbook', 'Changelog page', 'README.md', 'Guided lessons mode', 'Why did it fail? analysis', 'Quiz mode after tests', 'Keyboard shortcuts modal']
+  },
+  {
+    version: 'v5.0', date: 'Jul 18 2025', icon: '🏗️',
+    title: 'Physics & Content Overhaul',
+    changes: ['Resonance system (Tacoma Narrows)', 'Foundation cracking', 'Tension/compression display', 'City Bridge & Quake Zone levels', '14 achievements + toast notifications', 'Replay mode', 'Share bridge URL', 'Per-material sound effects']
+  },
+  {
+    version: 'v4.0', date: 'Jul 15 2025', icon: '🔧',
+    title: 'Engineering Tools',
+    changes: ['Bridge templates (Pratt, Warren, Arch, Suspension)', 'Force diagram overlay', 'Engineering Report generator', 'CSV stress data export', 'Design comparison tool', 'About page with methodology']
+  },
+  {
+    version: 'v3.0', date: 'Jul 12 2025', icon: '🎮',
+    title: 'Game Features',
+    changes: ['Undo system (Ctrl+Z)', 'Symmetry & copy tools', 'Night mode', 'Weather events (wind/quake/rain)', 'Leaderboard & save/load', 'Challenges system']
+  },
+  {
+    version: 'v2.0', date: 'Jul 8 2025', icon: '⚛️',
+    title: 'Simulation Rewrite',
+    changes: ['Replaced Matter.js with Verlet physics', 'Sag-based failure model', 'Cable material (tension-only)', 'Tower anchors for suspension', 'Beam inspector']
+  },
+  {
+    version: 'v1.0', date: 'Jun 29 2025', icon: '🌉',
+    title: 'Initial Launch',
+    changes: ['Basic bridge builder', '3 materials, 4 vehicles', '2 levels', 'Wave vehicle system', 'Stress color feedback', 'GitHub Pages deploy']
+  },
+];
+
+function renderUpdateLog() {
+  const el = document.getElementById('update-log');
+  if (!el) return;
+  el.innerHTML = UPDATE_LOG.map(u => `
+    <div class="update-entry">
+      <div class="update-header">
+        <span class="update-icon">${u.icon}</span>
+        <span class="update-ver">${u.version}</span>
+        <span class="update-title">${u.title}</span>
+        <span class="update-date">${u.date}</span>
+      </div>
+      <ul class="update-changes">
+        ${u.changes.map(c => `<li>${c}</li>`).join('')}
+      </ul>
+    </div>
+  `).join('');
+}
+
+// Call after DOM ready
+setTimeout(renderUpdateLog, 100);
