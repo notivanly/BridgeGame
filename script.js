@@ -249,16 +249,22 @@ let displayScaleX=1, displayScaleY=1, displayOffsetX=0, displayOffsetY=0;
 
 function resizeCanvasForDPR(){
   dpr=window.devicePixelRatio||1;
-  const rect=canvas.getBoundingClientRect();
-  const dispW=rect.width||W, dispH=rect.height||H;
-  if(dispW<10||dispH<10)return; // skip if layout not ready yet
-  const cw=Math.round(dispW*dpr), ch=Math.round(dispH*dpr);
-  canvas.width=cw; canvas.height=ch; // always set so DPR stays correct
-  // Uniform scale — maintains 900:600 aspect ratio, no stretching
-  const s=Math.min(dispW/W, dispH/H);
-  displayScaleX=s||1; displayScaleY=s||1;
-  displayOffsetX=(dispW-W*s)/2;
-  displayOffsetY=(dispH-H*s)/2;
+  // Use the PARENT container's size — always reliable after layout
+  const wrap=canvas.parentElement;
+  if(!wrap)return;
+  const w=wrap.clientWidth||W, h=wrap.clientHeight||H;
+  if(w<10||h<10)return;
+  // Set canvas internal resolution to match display exactly (no blur)
+  canvas.width=Math.round(w*dpr);
+  canvas.height=Math.round(h*dpr);
+  // Explicit CSS size so canvas fills the wrap
+  canvas.style.width=w+'px';
+  canvas.style.height=h+'px';
+  // Uniform letterbox scale: game coords → display coords
+  const s=Math.min(w/W,h/H);
+  displayScaleX=s; displayScaleY=s;
+  displayOffsetX=(w-W*s)/2;
+  displayOffsetY=(h-H*s)/2;
 }
 window.addEventListener('resize',()=>{resizeCanvasForDPR();});
 
