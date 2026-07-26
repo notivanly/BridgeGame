@@ -15,6 +15,13 @@ let dpr = 1;
 // ---------- Camera ----------
 let zoom = 1, panX = 0, panY = 0;
 
+// Feature flags — declared early so they're available during boot
+let sandboxMode = false;
+let timeScale = 1.0;
+let autoSpawnActive = false, autoSpawnQueue = [], autoSpawnTimer = 0;
+let forceOverlay = false;
+let gridSnap = false;
+
 // ---------- Stars ----------
 const STARS = Array.from({length:90},()=>({x:Math.random()*W,y:Math.random()*(GROUND_Y-60),r:.4+Math.random()*1.6,phase:Math.random()*Math.PI*2}));
 const clouds = Array.from({length:5},(_,i)=>({x:100+i*200,y:40+Math.sin(i)*30,w:80+i*20,speed:.15+i*.05}));
@@ -1188,7 +1195,7 @@ if(!localStorage.getItem('tutorialDone'))showTutorialStep(0);
 // ============================================================
 // GRID SNAP
 // ============================================================
-let gridSnap = false;
+
 const GRID_SIZE = 25;
 function snapToGrid(x, y) {
   if (!gridSnap) return { x, y };
@@ -1319,7 +1326,7 @@ function buildSuspensionBridge(cl, cr, mid) {
 // ============================================================
 // FORCE DIAGRAM OVERLAY
 // ============================================================
-let forceOverlay = false;
+
 function drawForceOverlay() {
   if (!forceOverlay || mode !== 'simulating') return;
   for (const sb of simBeams) {
@@ -1792,7 +1799,7 @@ if(_nightBtnEl){
 // ============================================================
 
 // ---------- Sandbox Mode ----------
-let sandboxMode = false;
+
 function toggleSandbox() {
   sandboxMode = !sandboxMode;
   document.getElementById('btn-sandbox')?.classList.toggle('active-tool', sandboxMode);
@@ -1806,7 +1813,7 @@ const _origBUD = BUD;
 // We'll patch BUD at call site via override
 
 // ---------- Time Speed Control ----------
-let timeScale = 1.0; // 0.5, 1.0, 2.0
+
 function setTimeScale(s) {
   timeScale = s;
   document.querySelectorAll('.time-btn').forEach(b => b.classList.toggle('active-tool', parseFloat(b.dataset.speed) === s));
@@ -1818,9 +1825,9 @@ let simAccum = 0;
 // We patch the loop to call simulationStep multiple times or fractionally
 
 // ---------- Auto-Spawn Mode ----------
-let autoSpawnActive = false;
-let autoSpawnQueue = [];
-let autoSpawnTimer = 0;
+
+
+
 const AUTO_SPAWN_ORDER = ['bicycle','sedan','van','truck','bus','semi','tank'];
 
 function startAutoSpawn() {
