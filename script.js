@@ -251,11 +251,12 @@ function resizeCanvasForDPR(){
   dpr=window.devicePixelRatio||1;
   const rect=canvas.getBoundingClientRect();
   const dispW=rect.width||W, dispH=rect.height||H;
+  if(dispW<10||dispH<10)return; // skip if layout not ready yet
   const cw=Math.round(dispW*dpr), ch=Math.round(dispH*dpr);
-  if(canvas.width!==cw||canvas.height!==ch){ canvas.width=cw; canvas.height=ch; }
+  canvas.width=cw; canvas.height=ch; // always set so DPR stays correct
   // Uniform scale — maintains 900:600 aspect ratio, no stretching
   const s=Math.min(dispW/W, dispH/H);
-  displayScaleX=s; displayScaleY=s;
+  displayScaleX=s||1; displayScaleY=s||1;
   displayOffsetX=(dispW-W*s)/2;
   displayOffsetY=(dispH-H*s)/2;
 }
@@ -546,7 +547,7 @@ function loop(){
 }
 
 function draw(){
-  resizeCanvasForDPR();
+  // NOTE: resizeCanvasForDPR is NOT called here - calling it resets the canvas context
   ctx.setTransform(1,0,0,1,0,0);
   ctx.clearRect(0,0,canvas.width,canvas.height);
   // Uniform scale + center offset → no stretching, always crisp
@@ -1174,7 +1175,7 @@ window.addEventListener('keydown',e=>{
 // Boot
 // ============================================================
 loadAchievements();
-resizeCanvasForDPR();
+resizeCanvasForDPR(); // initial attempt (may be 0 if layout not ready)
 initJoints();
 buildLevelUI();
 buildChallengeUI();
@@ -1182,6 +1183,8 @@ renderSaves();
 renderAchievements();
 refreshHUD();
 loadSharedBridge();
+// Deferred resize after layout is guaranteed complete
+setTimeout(()=>{ resizeCanvasForDPR(); }, 0);
 requestAnimationFrame(loop);
 if(!localStorage.getItem('tutorialDone'))showTutorialStep(0);
 
