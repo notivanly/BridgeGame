@@ -522,6 +522,7 @@ function stepVehicles(){
     if(v.x>W+80)v.done=true;
   }
   vehicles=vehicles.filter(v=>!v.done);
+  stepAutoSpawn();
 }
 
 function triggerLoss(reason){if(mode!=='simulating')return;stopCreak();mode='lost';const grade=calcGrade(false);refreshHUD();showBanner('💥 Bridge Failure',`Cause: ${reason}\n\nSurvived ${vehiclesCrossed} vehicle(s) · Max: ${maxLoadSurvived.toLocaleString()} kg\n\nCost: $${Math.round(totalCost).toLocaleString()} · Grade: ${grade}\n\nReplay available below`,false);}
@@ -683,6 +684,10 @@ function drawOverlays(){
   if(quakeActive||autoQuakeTimer<60){ctx.save();ctx.globalAlpha=.06;ctx.fillStyle='#d4483a';ctx.fillRect(0,0,W,H);ctx.restore();}
   if(rainActive){ctx.save();ctx.globalAlpha=.05;ctx.fillStyle='#4488aa';ctx.fillRect(0,0,W,H);ctx.restore();}
   const labs=[];if(windActive)labs.push('💨 WIND');if(quakeActive)labs.push('🌋 QUAKE');if(rainActive)labs.push('🌧 RAIN +20%');if(nightMode)labs.push('🌙 NIGHT');if(resonance>.3)labs.push(`🌊 RESONANCE ${Math.round(resonance*100)}%`);if(labs.length){ctx.save();ctx.font='bold 12px Archivo,sans-serif';ctx.fillStyle='#cfe3ee';ctx.textAlign='left';labs.forEach((l,i)=>ctx.fillText(l,12,22+i*18));ctx.restore();}
+  // v7.0 additions — called directly (not via patch)
+  if(typeof drawWindParticles==='function')drawWindParticles();
+  if(typeof drawStarRating==='function')drawStarRating();
+  if(typeof drawWaterEffect==='function')drawWaterEffect();
 }
 
 function drawInspector(){
@@ -1095,8 +1100,8 @@ const el={
 function refreshHUD(){
   const rem=BUD()-totalCost;
   el.spent.textContent=`$${Math.round(totalCost).toLocaleString()}`;
-  el.budget.textContent=`$${Math.round(rem).toLocaleString()}`;
-  el.budget.classList.toggle('over',rem<0);
+  el.budget.textContent=sandboxMode?'∞ SANDBOX':`$${Math.round(rem).toLocaleString()}`;
+  el.budget.classList.toggle('over',!sandboxMode&&rem<0);
   const totalM=(beams.reduce((s,b)=>s+b.length,0)*METERS_PER_PIXEL).toFixed(0);
   if(el.beamCount)el.beamCount.textContent=beams.length;
   if(el.beamLength)el.beamLength.textContent=totalM+'m';
@@ -1944,33 +1949,6 @@ function drawWaterEffect() {
     ctx.fillRect(cl, GROUND_Y, cr - cl, H - GROUND_Y);
   }
   // Animated surface lines already drawn in drawTerrain
-}
-
-// Hook new features into existing simulation loop
-const _origStepVehicles = stepVehicles;
-function stepVehicles() {
-  _origStepVehicles();
-  stepAutoSpawn();
-}
-
-// Hook star rating into draw
-const _origDrawOverlays = drawOverlays;
-function drawOverlays() {
-  _origDrawOverlays();
-  drawWindParticles();
-  drawStarRating();
-  drawWaterEffect();
-}
-
-// ---------- Sandbox budget override ----------
-// Patch refreshHUD to show UNLIMITED when sandbox on
-const _origRefreshHUD = refreshHUD;
-function refreshHUD() {
-  _origRefreshHUD();
-  if (sandboxMode) {
-    const budEl = document.getElementById('hud-budget');
-    if (budEl) budEl.textContent = '∞ SANDBOX';
-  }
 }
 
 // Wire up new buttons
