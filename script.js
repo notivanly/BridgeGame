@@ -256,12 +256,20 @@ let displayScaleX=1, displayScaleY=1, displayOffsetX=0, displayOffsetY=0;
 
 function resizeCanvasForDPR(){
   dpr=window.devicePixelRatio||1;
-  canvas.width=W*dpr;
-  canvas.height=H*dpr;
-  canvas.style.width=W+'px';
-  canvas.style.height=H+'px';
-  displayScaleX=1; displayScaleY=1;
-  displayOffsetX=0; displayOffsetY=0;
+  const wrap=canvas.parentElement;
+  if(!wrap)return;
+  const w=wrap.clientWidth||W, h=wrap.clientHeight||H;
+  if(w<10||h<10)return;
+  // Set canvas buffer to exact display size × dpr — crisp, no upscaling blur
+  canvas.width=Math.round(w*dpr);
+  canvas.height=Math.round(h*dpr);
+  canvas.style.width=w+'px';
+  canvas.style.height=h+'px';
+  // Uniform letterbox scale: game coords (900×600) → display pixels
+  const s=Math.min(w/W,h/H);
+  displayScaleX=s; displayScaleY=s;
+  displayOffsetX=(w-W*s)/2;
+  displayOffsetY=(h-H*s)/2;
 }
 window.addEventListener('resize',()=>{resizeCanvasForDPR();});
 
@@ -331,8 +339,8 @@ canvas.addEventListener('pointerleave',()=>{drag=null;hoverBeam=null;});
 function mirrorJoint(j,cx){if(j.fixed){const mx=cx+(cx-j.x),my=j.y;return joints.find(jj=>jj.fixed&&Math.abs(jj.x-mx)<8&&Math.abs(jj.y-my)<8)||addJoint(mx,my,false);}const mx=cx+(cx-j.x),my=j.y;return findNearestJoint(mx,my,10)||addJoint(mx,my,false);}
 function canvasPos(e){
   const r=canvas.getBoundingClientRect();
-  const cssX=(e.clientX-r.left)*(W/r.width);
-  const cssY=(e.clientY-r.top)*(H/r.height);
+  const cssX=(e.clientX-r.left-displayOffsetX)/displayScaleX;
+  const cssY=(e.clientY-r.top-displayOffsetY)/displayScaleY;
   return{x:(cssX-panX)/zoom,y:(cssY-panY)/zoom};
 }
 
@@ -552,10 +560,8 @@ function loop(){
 function draw(){
   ctx.setTransform(1,0,0,1,0,0);
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  // DEBUG: confirm canvas is alive
-  ctx.fillStyle='#1a3a5c';
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.setTransform(dpr*zoom,0,0,dpr*zoom,panX*dpr,panY*dpr);
+  const s=dpr*displayScaleX*zoom;
+  ctx.setTransform(s,0,0,s,(displayOffsetX+panX*displayScaleX)*dpr,(displayOffsetY+panY*displayScaleY)*dpr);
   drawSky();drawTerrain();
   if(mode==='build'){drawSpanDimension();drawAnchors();drawBeamsBuildMode();drawJointsBuildMode();if(drag&&activeMaterial!=='delete'&&activeMaterial!=='screw')drawDragLine();if(buildTimerActive)drawTimer();}
   else{drawTrails();drawBeamsPhysics();drawFallingBeams();drawSimJoints();drawDebris();drawSplash();drawVehicles();drawOverlays();drawInspector();drawForceOverlay();if(mode==='replay')drawReplayOverlay();}
@@ -1179,7 +1185,6 @@ window.addEventListener('keydown',e=>{
 // ============================================================
 loadAchievements();
 resizeCanvasForDPR();
-console.log('[LoadLimit] canvas:', canvas.width, 'x', canvas.height, '| CSS:', canvas.style.width, canvas.style.height, '| dpr:', dpr);
 initJoints();
 buildLevelUI();
 buildChallengeUI();
@@ -1187,9 +1192,8 @@ renderSaves();
 renderAchievements();
 refreshHUD();
 loadSharedBridge();
-setTimeout(()=>{ resizeCanvasForDPR(); console.log('[LoadLimit] after layout:', canvas.width, 'x', canvas.height); }, 0);
+setTimeout(()=>{ resizeCanvasForDPR(); }, 50);
 requestAnimationFrame(loop);
-console.log('[LoadLimit] loop started');
 if(!localStorage.getItem('tutorialDone'))showTutorialStep(0);
 
 // ============================================================
