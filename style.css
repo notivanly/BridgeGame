@@ -137,8 +137,8 @@ button:disabled { opacity:.35; cursor:not-allowed; }
 .lb-empty { color:#847b69; font-size:11px; font-style:italic; }
 
 /* ── CANVAS ── */
-.stage-wrap { position:relative; flex:1; min-width:0; min-height:0; overflow:hidden; display:flex; align-items:center; justify-content:center; background:var(--bg); }
-#stage { display:block; cursor:crosshair; background:var(--bg); width:100%; height:100%; }
+.stage-wrap { position:relative; flex:1; min-width:0; min-height:0; overflow:hidden; background:var(--bg); }
+#stage { display:block; cursor:crosshair; }
 
 /* ── BANNER ── */
 .banner { position:absolute; inset:0; background:rgba(8,20,35,.82); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .25s; }
@@ -248,7 +248,7 @@ body.night-ui .panel-section { border-color:#1c4a73; }
   .hud-actions button, .hud-actions a { font-size:11px; padding:6px 10px; }
 }
 html,body { height:100%; overflow:hidden; }
-#stage { display:block; cursor:crosshair; background:var(--bg); }
+
 
 /* ── TIME CONTROLS ── */
 .time-row { display:flex; gap:4px; }
