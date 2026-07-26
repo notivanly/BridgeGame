@@ -545,6 +545,9 @@ function loop(){
 function draw(){
   ctx.setTransform(1,0,0,1,0,0);
   ctx.clearRect(0,0,canvas.width,canvas.height);
+  // DEBUG: confirm canvas is alive
+  ctx.fillStyle='#1a3a5c';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.setTransform(dpr*zoom,0,0,dpr*zoom,panX*dpr,panY*dpr);
   drawSky();drawTerrain();
   if(mode==='build'){drawSpanDimension();drawAnchors();drawBeamsBuildMode();drawJointsBuildMode();if(drag&&activeMaterial!=='delete'&&activeMaterial!=='screw')drawDragLine();if(buildTimerActive)drawTimer();}
@@ -1168,7 +1171,8 @@ window.addEventListener('keydown',e=>{
 // Boot
 // ============================================================
 loadAchievements();
-resizeCanvasForDPR(); // initial attempt (may be 0 if layout not ready)
+resizeCanvasForDPR();
+console.log('[LoadLimit] canvas:', canvas.width, 'x', canvas.height, '| CSS:', canvas.style.width, canvas.style.height, '| dpr:', dpr);
 initJoints();
 buildLevelUI();
 buildChallengeUI();
@@ -1176,9 +1180,9 @@ renderSaves();
 renderAchievements();
 refreshHUD();
 loadSharedBridge();
-// Deferred resize after layout is guaranteed complete
-setTimeout(()=>{ resizeCanvasForDPR(); }, 0);
+setTimeout(()=>{ resizeCanvasForDPR(); console.log('[LoadLimit] after layout:', canvas.width, 'x', canvas.height); }, 0);
 requestAnimationFrame(loop);
+console.log('[LoadLimit] loop started');
 if(!localStorage.getItem('tutorialDone'))showTutorialStep(0);
 
 // ============================================================
