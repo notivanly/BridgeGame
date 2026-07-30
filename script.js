@@ -260,15 +260,14 @@ function resizeCanvasForDPR(){
   if(!wrap)return;
   const w=wrap.clientWidth||W, h=wrap.clientHeight||H;
   if(w<10||h<10)return;
-  // Set canvas buffer to exact display size × dpr — crisp, no upscaling blur
   canvas.width=Math.round(w*dpr);
   canvas.height=Math.round(h*dpr);
   canvas.style.width=w+'px';
   canvas.style.height=h+'px';
-  // Uniform letterbox scale: game coords (900×600) → display pixels
-  const s=Math.min(w/W,h/H);
+  // Fill full width — use width scale, center vertically if canvas is taller than game
+  const s=w/W;
   displayScaleX=s; displayScaleY=s;
-  displayOffsetX=(w-W*s)/2;
+  displayOffsetX=0;
   displayOffsetY=(h-H*s)/2;
 }
 window.addEventListener('resize',()=>{resizeCanvasForDPR();});
