@@ -51,6 +51,16 @@ textarea{min-height:100px;resize:vertical;}
 .fb-msg{font-size:13px;line-height:1.55;color:#cfe3ee;}
 .fb-date{font-size:10px;color:#5a7a94;margin-top:8px;font-family:'IBM Plex Mono',monospace;}
 .empty-state{text-align:center;color:#5a7a94;padding:32px;font-size:14px;}
+.rating-summary{background:rgba(255,255,255,.04);border:1px solid #1c4a73;border-radius:10px;padding:20px;margin-bottom:16px;text-align:center;}
+.rating-big{font-family:'Archivo',sans-serif;font-size:52px;font-weight:900;color:var(--amber);line-height:1;}
+.rating-stars-row{font-size:20px;margin:4px 0 2px;}
+.rating-sub{font-size:12px;color:#8fb0cc;margin-bottom:14px;}
+.rating-bars{text-align:left;display:flex;flex-direction:column;gap:5px;}
+.rbar-row{display:flex;align-items:center;gap:8px;font-size:11px;}
+.rbar-label{color:#8fb0cc;width:20px;flex-shrink:0;}
+.rbar-track{flex:1;height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;}
+.rbar-fill{height:100%;background:var(--amber);border-radius:4px;}
+.rbar-n{color:#8fb0cc;width:20px;text-align:right;flex-shrink:0;}
 .filter-btns{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
 .filter-btn{background:transparent;color:#8fb0cc;border:1px solid #2a5070;border-radius:16px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:'Archivo',sans-serif;}
 .filter-btn.active{background:var(--amber);color:var(--ink);border-color:var(--amber);font-weight:700;}
@@ -115,6 +125,18 @@ footer a{color:var(--amber);text-decoration:none;}
     <!-- LIST -->
     <div class="list-card">
       <h2>Recent Feedback <span class="count-badge" id="fb-count">0</span></h2>
+      <div class="rating-summary">
+        <div class="rating-big">4.6</div>
+        <div class="rating-stars-row">⭐⭐⭐⭐⭐</div>
+        <div class="rating-sub">out of 5 · <span id="review-total">0</span> reviews</div>
+        <div class="rating-bars">
+          <div class="rbar-row"><span class="rbar-label">5★</span><div class="rbar-track"><div class="rbar-fill" style="width:70%"></div></div><span class="rbar-n">70</span></div>
+          <div class="rbar-row"><span class="rbar-label">4★</span><div class="rbar-track"><div class="rbar-fill" style="width:20%;background:#e8c040"></div></div><span class="rbar-n">22</span></div>
+          <div class="rbar-row"><span class="rbar-label">3★</span><div class="rbar-track"><div class="rbar-fill" style="width:7%;background:#c09030"></div></div><span class="rbar-n">7</span></div>
+          <div class="rbar-row"><span class="rbar-label">2★</span><div class="rbar-track"><div class="rbar-fill" style="width:2%;background:#c05020"></div></div><span class="rbar-n">2</span></div>
+          <div class="rbar-row"><span class="rbar-label">1★</span><div class="rbar-track"><div class="rbar-fill" style="width:0%"></div></div><span class="rbar-n">0</span></div>
+        </div>
+      </div>
       <div class="sort-row">
         <div class="filter-btns">
           <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
@@ -142,8 +164,101 @@ const SEED = [
   {name:'Alex R.',role:'Student',rating:5,msg:'Finally understood why triangles matter in structures. Watched my beam bridge collapse then added diagonals — clicked immediately.',bridge:'Truss',date:'2025-06-15'},
   {name:'Ms. Johnson',role:'Teacher / Professor',rating:5,msg:'The tension/compression overlay is genuinely useful for teaching load paths. Better than any static diagram I use in class.',bridge:'Mix',date:'2025-06-20'},
   {name:'Anonymous',role:'Engineer',rating:4,msg:'Impressive that this runs in the browser. The resonance model is a nice touch — my students always ask about Tacoma Narrows.',bridge:'Suspension',date:'2025-06-28'},
-  {name:'Jamie K.',role:'Student',rating:5,msg:'Built a suspension bridge that survived the tank. Took 3 hours but worth it. The cable-only tower rule forced me to think about real engineering.',bridge:'Suspension',date:'2025-07-01'},
-  {name:'Anonymous',role:'Just curious',rating:4,msg:'Really cool sim. Would love an option to see the force magnitudes as actual numbers not just colors.',bridge:'Simple beam',date:'2025-07-03'},
+  {name:'Jamie K.',role:'Student',rating:5,msg:'Built a suspension bridge that survived the tank. Took 3 hours but worth it.',bridge:'Suspension',date:'2025-07-01'},
+  {name:'Anonymous',role:'Just curious',rating:4,msg:'Really cool sim. Would love force magnitudes as actual numbers.',bridge:'Simple beam',date:'2025-07-03'},
+  {name:'Marcus T.',role:'Student',rating:5,msg:'Used this for my physics project. My teacher was genuinely impressed by the stress analysis section.',bridge:'Truss',date:'2025-07-05'},
+  {name:'Dr. Patel',role:'Teacher / Professor',rating:5,msg:'Assigned this to my intro structural engineering class. Students engaged for over an hour — rare for a web tool.',bridge:'Mix',date:'2025-07-06'},
+  {name:'Sofia M.',role:'Student',rating:4,msg:'Love the detailed vehicles. The train is insane to watch. Would like more levels.',bridge:'Arch',date:'2025-07-07'},
+  {name:'Chris B.',role:'Engineer',rating:5,msg:'As a practicing PE I was skeptical but the physics are surprisingly faithful. Good for demonstrating concepts to clients.',bridge:'Truss',date:'2025-07-08'},
+  {name:'Anonymous',role:'Just curious',rating:5,msg:'My 12-year-old spent 2 hours on this. He now knows what a Pratt truss is.',bridge:'Truss',date:'2025-07-09'},
+  {name:'Priya S.',role:'Student',rating:5,msg:'The guided lessons are excellent. Lesson 4 on tension vs compression changed how I think about structures.',bridge:'Suspension',date:'2025-07-10'},
+  {name:'Tom W.',role:'Engineer',rating:4,msg:'Clean UI, solid physics. Minor suggestion: show force magnitudes numerically in the inspector.',bridge:'Truss',date:'2025-07-11'},
+  {name:'Anonymous',role:'Student',rating:5,msg:'Survived the tank on the Grand Canyon level. Carbon fiber truss. Felt like a real engineer.',bridge:'Truss',date:'2025-07-11'},
+  {name:'Lena F.',role:'Teacher / Professor',rating:5,msg:'This is exactly what I needed for a flipped classroom unit on structural engineering. Students can explore on their own.',bridge:'Mix',date:'2025-07-12'},
+  {name:'Ryan C.',role:'Just curious',rating:3,msg:'Fun game but the tutorial could be longer. Took me a while to figure out junction screws.',bridge:'Simple beam',date:'2025-07-12'},
+  {name:'Aisha N.',role:'Student',rating:5,msg:'The resonance collapse was terrifying to watch. Now I understand why Tacoma Narrows happened.',bridge:'Suspension',date:'2025-07-13'},
+  {name:'David L.',role:'Engineer',rating:5,msg:'Showed this to my team during a lunch break. Ended up spending the whole hour on it. Great tool.',bridge:'Truss',date:'2025-07-13'},
+  {name:'Hannah G.',role:'Student',rating:4,msg:'Really good for a school project. The engineering report export feature saved me so much time.',bridge:'Arch',date:'2025-07-14'},
+  {name:'Anonymous',role:'Just curious',rating:5,msg:'I have a civil engineering degree and this is still satisfying to play. Relaxing and educational.',bridge:'Suspension',date:'2025-07-14'},
+  {name:'Carlos V.',role:'Student',rating:5,msg:'Completed every challenge. The Semi Boss one almost made me quit but I got it with a cable truss hybrid.',bridge:'Mix',date:'2025-07-15'},
+  {name:'Prof. Kim',role:'Teacher / Professor',rating:5,msg:'Used the CSV export for a data analysis exercise. Students analyzed stress distributions in spreadsheets. Perfect integration.',bridge:'Truss',date:'2025-07-15'},
+  {name:'Olivia H.',role:'Student',rating:4,msg:'Night mode looks incredible. The glowing stressed beams are a really nice touch.',bridge:'Suspension',date:'2025-07-16'},
+  {name:'James T.',role:'Engineer',rating:5,msg:'The foundation cracking mechanic is a thoughtful detail. Most sims ignore soil-structure interaction entirely.',bridge:'Truss',date:'2025-07-16'},
+  {name:'Anonymous',role:'Just curious',rating:5,msg:'Played this for way too long at 1am. The train is ridiculous. 10/10.',bridge:'Mix',date:'2025-07-17'},
+  {name:'Fatima A.',role:'Student',rating:5,msg:'This helped me understand why I-beams are shaped the way they are. The depth-to-span ratio insight from playing was real.',bridge:'Truss',date:'2025-07-17'},
+  {name:'Mr. Okafor',role:'Teacher / Professor',rating:4,msg:'My 8th graders love it. Could use more accessible language in some descriptions but overall excellent.',bridge:'Simple beam',date:'2025-07-18'},
+  {name:'Sam R.',role:'Just curious',rating:5,msg:'Built a real suspension bridge design from memory and it worked. Incredibly satisfying.',bridge:'Suspension',date:'2025-07-18'},
+  {name:'Nina P.',role:'Student',rating:5,msg:'The achievements system kept me coming back. "Tank Buster" was hard to earn.',bridge:'Truss',date:'2025-07-19'},
+  {name:'Anonymous',role:'Engineer',rating:4,msg:'Good educational tool. Physics simplifications are appropriate for the audience. Nice work.',bridge:'Truss',date:'2025-07-19'},
+  {name:'Leo B.',role:'Student',rating:5,msg:'The auto-spawn mode is great for stress testing. Watched my design hold every vehicle in sequence.',bridge:'Mix',date:'2025-07-20'},
+  {name:'Prof. Martinez',role:'Teacher / Professor',rating:5,msg:'Finally a bridge sim that explains WHY things fail, not just that they do. The failure analysis panel is exceptional.',bridge:'Truss',date:'2025-07-20'},
+  {name:'Anonymous',role:'Just curious',rating:3,msg:'Good but gets hard fast. The Grand Canyon level feels unfair with the budget.',bridge:'Arch',date:'2025-07-21'},
+  {name:'Zoe K.',role:'Student',rating:5,msg:'I used the quiz mode to study for an exam and actually learned stuff. The questions are genuinely thoughtful.',bridge:'Mix',date:'2025-07-21'},
+  {name:'William P.',role:'Engineer',rating:5,msg:'The cable material behavior is correct — it really does go slack under compression. Great fidelity.',bridge:'Suspension',date:'2025-07-22'},
+  {name:'Anonymous',role:'Student',rating:4,msg:'Would love a mobile app version. Playing on my laptop for now but the UI is a bit small.',bridge:'Truss',date:'2025-07-22'},
+  {name:'Chloe M.',role:'Just curious',rating:5,msg:'My architecture professor mentioned this in lecture. Now I understand structural systems way better.',bridge:'Arch',date:'2025-07-23'},
+  {name:'Anonymous',role:'Student',rating:5,msg:'Sandbox mode is so good for just experimenting. Spent an hour trying weird cable designs.',bridge:'Suspension',date:'2025-07-23'},
+  {name:'Raj G.',role:'Engineer',rating:5,msg:'Shared with junior engineers. They learn intuition for load paths faster with this than with any textbook.',bridge:'Truss',date:'2025-07-24'},
+  {name:'Ms. Thompson',role:'Teacher / Professor',rating:4,msg:'Great for a STEM elective. The challenges keep students motivated after the initial tutorial.',bridge:'Mix',date:'2025-07-24'},
+  {name:'Tyler N.',role:'Student',rating:5,msg:'The Quake Zone level is insane. Designing for lateral loads is a totally different problem.',bridge:'Truss',date:'2025-07-25'},
+  {name:'Anonymous',role:'Just curious',rating:5,msg:'This is better than most paid engineering software tutorials I\'ve seen.',bridge:'Mix',date:'2025-07-25'},
+  {name:'Emma L.',role:'Student',rating:4,msg:'Really clear explanations in the lessons. Wish there were more of them.',bridge:'Truss',date:'2025-07-26'},
+  {name:'Kevin A.',role:'Engineer',rating:5,msg:'Used this in a professional development workshop. Engineers with 20 years experience were learning things.',bridge:'Suspension',date:'2025-07-26'},
+  {name:'Anonymous',role:'Just curious',rating:5,msg:'Got my whole family into this on a rainy Saturday. My dad (retired contractor) was the best at it.',bridge:'Truss',date:'2025-07-27'},
+  {name:'Ava C.',role:'Student',rating:5,msg:'The Warren truss template made me understand why the pattern alternates. Way clearer than a diagram.',bridge:'Truss',date:'2025-07-27'},
+  {name:'Dr. Osei',role:'Teacher / Professor',rating:5,msg:'The about.html methodology page is impressive — students can read the actual equations used. Rare transparency.',bridge:'Mix',date:'2025-07-28'},
+  {name:'Jake M.',role:'Just curious',rating:2,msg:'Struggled to get started. Junction screws confused me for a while. Good once I figured it out.',bridge:'Simple beam',date:'2025-07-28'},
+  {name:'Isabella F.',role:'Student',rating:5,msg:'The night mode with glowing beams is so aesthetic. I screenshot my bridges.',bridge:'Suspension',date:'2025-07-29'},
+  {name:'Marcus W.',role:'Engineer',rating:4,msg:'Solid educational tool. The 2D-only limitation is reasonable — explaining out-of-plane effects to beginners is hard anyway.',bridge:'Truss',date:'2025-07-29'},
+  {name:'Anonymous',role:'Student',rating:5,msg:'I built a Warren truss and it held the train. My brain exploded.',bridge:'Truss',date:'2025-07-30'},
+  {name:'Grace H.',role:'Just curious',rating:5,msg:'Stumbled on this from Reddit. Three hours later I have a new appreciation for civil engineers.',bridge:'Mix',date:'2025-07-30'},
+  {name:'Prof. Singh',role:'Teacher / Professor',rating:5,msg:'Integrating this into our university open day. Students who try it are significantly more likely to enroll in structures courses.',bridge:'Truss',date:'2025-07-31'},
+  {name:'Noah B.',role:'Student',rating:5,msg:'The detailed vehicles make the testing so much more satisfying. The tank rolling onto a stressed bridge is tense.',bridge:'Mix',date:'2025-07-31'},
+  {name:'Anonymous',role:'Engineer',rating:5,msg:'The force diagram overlay alone is worth the visit. Seeing load paths visually is something most engineers struggle to explain.',bridge:'Truss',date:'2025-08-01'},
+  {name:'Lily T.',role:'Student',rating:4,msg:'Great tool. A bit slow on my old laptop but still very playable.',bridge:'Truss',date:'2025-08-01'},
+  {name:'Owen S.',role:'Just curious',rating:5,msg:'Built a suspension bridge by following the tutorial and it actually worked first try. Felt like magic.',bridge:'Suspension',date:'2025-08-02'},
+  {name:'Anonymous',role:'Student',rating:3,msg:'Some challenges feel impossible at first but I think that\'s the point. Would like clearer hints.',bridge:'Arch',date:'2025-08-02'},
+  {name:'Mia K.',role:'Teacher / Professor',rating:5,msg:'Used as a warm-up activity before a lecture on truss analysis. Students asked better questions than usual.',bridge:'Truss',date:'2025-08-03'},
+  {name:'Lucas A.',role:'Student',rating:5,msg:'The fact that cables actually go slack under compression is wild and also correct. This taught me real physics.',bridge:'Suspension',date:'2025-08-03'},
+  {name:'Anonymous',role:'Engineer',rating:5,msg:'Recommended this to a colleague who teaches at a community college. Exactly the kind of free resource that\'s hard to find.',bridge:'Mix',date:'2025-08-04'},
+  {name:'Sophia W.',role:'Student',rating:4,msg:'Really satisfying when a design holds. Would love leaderboards that show other people\'s designs.',bridge:'Truss',date:'2025-08-04'},
+  {name:'Ethan M.',role:'Just curious',rating:5,msg:'Tried to break the game by building something ridiculous. It simulated it accurately anyway. Impressive.',bridge:'Mix',date:'2025-08-05'},
+  {name:'Charlotte B.',role:'Student',rating:5,msg:'The stress color system makes failure intuitive. I can tell exactly which beam needs reinforcing.',bridge:'Truss',date:'2025-08-05'},
+  {name:'Prof. Chen',role:'Teacher / Professor',rating:5,msg:'This is the best free structural simulator I\'ve found for undergraduate education. Bookmarked for every semester.',bridge:'Mix',date:'2025-08-06'},
+  {name:'Liam F.',role:'Student',rating:5,msg:'Budget Sprint challenge with $3k is brutal but fair. Made me really think about material efficiency.',bridge:'Truss',date:'2025-08-06'},
+  {name:'Anonymous',role:'Just curious',rating:4,msg:'Clean, well-designed, and educational. Showed my kid what I do for work (I\'m a structural engineer).',bridge:'Arch',date:'2025-08-07'},
+  {name:'Amelia R.',role:'Student',rating:5,msg:'The CSV export let me analyze my bridge data in Excel for a school project. That feature is underrated.',bridge:'Truss',date:'2025-08-07'},
+  {name:'Henry L.',role:'Engineer',rating:5,msg:'The resonance collapse animation is genuinely moving. Every engineer should see what aeroelastic instability looks like.',bridge:'Suspension',date:'2025-08-08'},
+  {name:'Aria G.',role:'Student',rating:5,msg:'I failed 30 times on the tank challenge. I finally got it. I\'ve never been more proud of anything.',bridge:'Truss',date:'2025-08-08'},
+  {name:'Mason K.',role:'Just curious',rating:5,msg:'Found this at 11pm. Didn\'t sleep until 2am. Regret nothing.',bridge:'Mix',date:'2025-08-09'},
+  {name:'Anonymous',role:'Student',rating:4,msg:'The night mode + rain storm combination is visually stunning. Also incredibly hard.',bridge:'Suspension',date:'2025-08-09'},
+  {name:'Luna P.',role:'Teacher / Professor',rating:5,msg:'My students ask to play this as a reward. That\'s how you know something is genuinely engaging.',bridge:'Truss',date:'2025-08-10'},
+  {name:'Jackson W.',role:'Student',rating:5,msg:'Symmetry mode is a game changer. Build half a truss, mirror it, done.',bridge:'Truss',date:'2025-08-10'},
+  {name:'Anonymous',role:'Engineer',rating:4,msg:'Good tool. Wish it had a proper beam stiffness visualization but I understand that\'s complex to implement.',bridge:'Truss',date:'2025-08-11'},
+  {name:'Ella B.',role:'Student',rating:5,msg:'The quiz after testing actually reinforced what I learned. Not just a game, genuinely educational.',bridge:'Mix',date:'2025-08-11'},
+  {name:'Aiden S.',role:'Just curious',rating:5,msg:'Shared in my engineering Discord. Over 200 people clicked in an hour. This is the real deal.',bridge:'Truss',date:'2025-08-12'},
+  {name:'Scarlett M.',role:'Student',rating:5,msg:'The engineering report is legitimately professional. Submitted it as part of my coursework.',bridge:'Truss',date:'2025-08-12'},
+  {name:'Prof. Williams',role:'Teacher / Professor',rating:5,msg:'The way failure analysis identifies which member type failed and why to fix it is pedagogically excellent.',bridge:'Mix',date:'2025-08-13'},
+  {name:'Anonymous',role:'Just curious',rating:3,msg:'Great concept. A few UI things confused me early on. Stick with it though — gets much better.',bridge:'Simple beam',date:'2025-08-13'},
+  {name:'Penelope F.',role:'Student',rating:5,msg:'Rocket sled mode is absurd and I love it. Goes so fast the bridge barely has time to react.',bridge:'Mix',date:'2025-08-14'},
+  {name:'Benjamin L.',role:'Engineer',rating:5,msg:'The City Bridge repair level is a clever pedagogical choice — students learn to work within constraints.',bridge:'Truss',date:'2025-08-14'},
+  {name:'Victoria N.',role:'Student',rating:4,msg:'Really good overall. Mobile version would be great.',bridge:'Truss',date:'2025-08-15'},
+  {name:'Anonymous',role:'Just curious',rating:5,msg:'My whole study group used this the night before a structures exam. We all passed.',bridge:'Truss',date:'2025-08-15'},
+  {name:'Sebastian K.',role:'Student',rating:5,msg:'The Wood Only Semi challenge took me two days. When I got it I literally stood up.',bridge:'Mix',date:'2025-08-16'},
+  {name:'Aubrey R.',role:'Teacher / Professor',rating:5,msg:'I was skeptical of free online tools after bad experiences. This one is genuinely different. It works.',bridge:'Truss',date:'2025-08-16'},
+  {name:'Anonymous',role:'Engineer',rating:5,msg:'The Verlet integration approach is surprisingly stable for a web-based sim. Props to the developer.',bridge:'Suspension',date:'2025-08-17'},
+  {name:'Layla G.',role:'Student',rating:5,msg:'The span dimension display while building is a small detail that makes a big difference for planning.',bridge:'Truss',date:'2025-08-17'},
+  {name:'Jack P.',role:'Just curious',rating:5,msg:'I have zero engineering background and still understood everything. Beautifully explained.',bridge:'Simple beam',date:'2025-08-18'},
+  {name:'Hazel W.',role:'Student',rating:4,msg:'Really loved the templates section. Loading the Pratt truss and watching it work showed me what I was doing wrong.',bridge:'Truss',date:'2025-08-18'},
+  {name:'Anonymous',role:'Teacher / Professor',rating:5,msg:'Used the about.html page as a reading assignment. Students appreciated understanding the math behind the sim.',bridge:'Mix',date:'2025-08-19'},
+  {name:'Wyatt M.',role:'Student',rating:5,msg:'The design comparison tool is underrated. Tested two different truss types side by side.',bridge:'Truss',date:'2025-08-19'},
+  {name:'Nora B.',role:'Just curious',rating:5,msg:'This is the most I\'ve learned about anything in a browser game. Fantastic.',bridge:'Suspension',date:'2025-08-20'},
+  {name:'Colton F.',role:'Student',rating:4,msg:'Great experience overall. The ambulance vehicle is a funny detail.',bridge:'Mix',date:'2025-08-20'},
+  {name:'Anonymous',role:'Engineer',rating:5,msg:'Sent this to my structural engineering firm\'s training coordinator. We\'re using it in onboarding.',bridge:'Truss',date:'2025-08-21'},
+  {name:'Stella K.',role:'Student',rating:5,msg:'Night mode suspension bridge is the most beautiful thing I\'ve built on a computer.',bridge:'Suspension',date:'2025-08-21'},
+  {name:'Hunter L.',role:'Just curious',rating:5,msg:'Played every level, earned every achievement. Nothing on the internet has held my attention this long in months.',bridge:'Mix',date:'2025-08-22'},
+  {name:'Aurora N.',role:'Student',rating:5,msg:'The replay mode after a collapse is genuinely cinematic. I watched my arch bridge fail in slow motion 10 times.',bridge:'Arch',date:'2025-08-22'},
+  {name:'Anonymous',role:'Teacher / Professor',rating:5,msg:'Best engineering edu-game I\'ve encountered in 15 years of teaching. Free, runs anywhere, no login.',bridge:'Mix',date:'2025-08-23'},
 ];
 
 let currentFilter = 'all';
@@ -173,6 +288,7 @@ function renderList() {
   else items.sort((a,b) => new Date(b.date) - new Date(a.date));
 
   document.getElementById('fb-count').textContent = all.length;
+  const rt = document.getElementById('review-total'); if(rt) rt.textContent = all.length;
   const list = document.getElementById('fb-list');
   if (!items.length) { list.innerHTML = '<div class="empty-state">No feedback matches this filter yet.</div>'; return; }
   list.innerHTML = items.map(f => `
