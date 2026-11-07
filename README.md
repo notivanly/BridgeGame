@@ -1,149 +1,56 @@
-# Load Limit — Bridge Engineering Lab
+# Load Limit | Bridge Engineering Lab (3D)
 
-> An open-source, browser-based structural engineering simulator that models 2D truss bridge behavior under dynamic vehicular loading.
+Design a bridge across a gorge, then test it in 3D with real vehicles, from a bicycle to a 200 tonne train. Beams have a cost, a strength and a way to fail: they turn amber, then red, then snap.
 
-**[▶ Play Live](https://notivanly.github.io/BridgeGame/)** · **[Engineering Docs](https://notivanly.github.io/BridgeGame/about.html)** · **[Leave Feedback](https://notivanly.github.io/BridgeGame/feedback.html)**
+Everything lives in one file, `index.html`. No build step, no dependencies, no folders.
 
----
+## Put it on GitHub Pages
 
-## Overview
+1. Open your `BridgeGame` repository on GitHub.
+2. Choose **Add file > Upload files** and drag in `index.html`. It replaces your current `index.html` because the name is the same.
+3. Commit. After about a minute, hard-refresh your page (Ctrl+Shift+R).
 
-Load Limit lets users design bridge structures using real engineering materials (wood, steel, concrete, cable, carbon fiber), then stress-test them with increasingly heavy vehicles — from a 15kg bicycle to a 200,000kg train. The simulation uses **Position-Based Dynamics** with Verlet integration and iterative constraint relaxation to model realistic structural deformation and failure.
+Your old files (`landing.html`, `about.html`, scripts and stylesheets) are no longer linked. You can leave them or delete them.
 
-The goal is to make structural engineering concepts — load paths, tension vs compression, truss geometry, resonance, material selection — accessible and intuitive without requiring any engineering prerequisites.
+## How it works in 3D
 
----
+You draw one side of the bridge on the side view. The game builds a real 3D structure from it: two parallel trusses, floor beams across the deck, and diagonal bracing in each side panel. Switch to the 3D view and drag to orbit the camera.
 
-## Features
+That makes 3D effects real:
 
-### Physics Engine
-- **Position-Based Dynamics** (Verlet integration, 60fps)
-- Iterative constraint relaxation (8 passes/frame)
-- Sag-based failure detection with material-specific thresholds
-- Tension/compression tracking per beam member
-- Resonance accumulation model (Tacoma Narrows-style)
-- Foundation cracking under overload
-- Wind, earthquake, and rain stress events
+- **Wind** pushes sideways. With full bracing the structure barely moves; with deck-only or no bracing it sways metres.
+- **Lanes**: put a heavy vehicle in the left or right lane and one truss carries more of the load (torsion).
+- **Bracing level** and **deck width** change the cost and the lateral stability.
 
-### Materials
-| Material | Cost/m | Strength | Notes |
-|---|---|---|---|
-| Wood | $14 | ★★☆☆☆ | Cheap, brittle |
-| Concrete | $68 | ★★★☆☆ | Heavy, moderate |
-| Steel | $135 | ★★★★★ | Standard structural |
-| Cable | $45 | ★★★☆☆ | Tension only |
-| Carbon Fiber | $400 | ★★★★★ | Ultra-light, expensive |
+## Playing
 
-### Vehicles
-Bicycle (15kg) → Sedan (1,400kg) → Van → Truck → Bus → Semi (18,000kg) → Tank (60,000kg) → Train (200,000kg)
+- **Materials**: Wood, Steel, Concrete, Cable (tension only, pre-tensioned), Carbon Fiber, with the original per-metre prices.
+- **Build**: drag from an anchor (red triangle) to draw beams. Tools: Delete, Junction screw, Symmetry, Grid snap, Copy left half, Undo, Reset. Templates: Simple beam, Pratt, Warren, Arch, Suspension.
+- **Test**: press Test, then spawn any of 11 vehicles. Auto-spawn, slow motion, 0.5x to 2x time, Force Diagram (blue tension, orange compression).
+- **Disasters**: Wind burst, Earthquake, Rain storm.
+- **Judging**: Success needs a clean crossing and a sag under 1.5 m. A crossing with broken beams is Damaged, a fall is Collapsed, and a sag over 1.5 m is Too flexible.
+- **Challenges** (with budgets and best scores), **4 lessons**, a **quiz**, **achievements**, an **engineering report** with a safety factor, **CSV export**, **save and compare designs**, and a how-to-play tour.
 
-### Engineering Tools
-- Force diagram overlay (tension/compression arrows)
-- Beam inspector (stress %, mode, cost per segment)
-- Engineering report generator (printable PDF)
-- Stress data CSV export
-- Design comparison table
-- Bridge templates (Pratt, Warren, Arch, Suspension)
+## The engineering
 
-### Levels
-1. **Narrow Gorge** — 16m span, $120k budget
-2. **River Crossing** — 24m span, $300k budget
-3. **Grand Canyon** — 28m span with mid-span pier, $500k budget
-4. **City Bridge** — Repair a damaged bridge with pre-built locked sections
-5. **Quake Zone** — Auto-earthquakes every 30 seconds during testing
+- Every beam is a pin-jointed bar carrying axial force `F = (EA/L) x elongation`.
+- Compression capacity is the smaller of the yield load and the **Euler buckling load** `pi^2 E I / L^2`, so long thin beams buckle first. A tube (steel, carbon) is far stiffer than a solid section (wood, concrete).
+- **Static analysis** is the 3D direct stiffness method (`K u = F`), used for the report. **The test** is a dynamic simulation with real masses, moving vehicle loads, and progressive collapse when a bar's capacity is exceeded.
+- Cables only pull, and are pre-tensioned.
 
----
+I checked the engine against exact results: a 3D tripod's leg forces to nine digits, global equilibrium (reactions equal the weight), the dynamic simulation settling onto the static solution to 0.1 %, Euler buckling loads, mechanism detection, and the wind sway comparison (1.7 cm with full bracing, about 4 m without).
 
-## Simulation Methodology
+## Honest limits
 
-### Verlet Integration
-```
-x(t+Δt) = x(t) + (x(t) − x(t−Δt)) · damping + F · Δt²
-damping = 0.96, Δt = 1/60s, gravity = 0.2 px/frame²
-```
+- Stiffness is scaled to 1/50 of real so sag is visible. Strengths are realistic.
+- Vehicles are moving point loads. Wind, rain and earthquakes are simplified.
+- Static analysis is unavailable for designs with slack cables (a linear solver cannot handle tension-only members that start slack). The test still works.
+- Pin-jointed bars have no bending stiffness, so a plain chain of beams acts like a rope. The 1.5 m sag limit is why that does not win.
+- Not intended for structural design or safety decisions.
 
-### Constraint Relaxation
-Each beam is a distance constraint between two joints. Per-frame:
-```
-correction = (|p_B − p_A| − L₀) / |p_B − p_A| × 0.5
-p_A += correction × (p_B − p_A)  [if free]
-p_B -= correction × (p_B − p_A)  [if free]
-```
+## Tweak it
 
-### Failure Criterion
-```
-sag = max(y_joint(t) − y_joint(settled))
-failure if: sag × resonanceFactor > material.sagLimit
-resonanceFactor = 1 + R × 0.6
-```
-
-### Load Distribution
-```
-proximity_i = 1 − |x_joint − x_vehicle| / (vehicle_width × 0.75)
-F_i = F_vehicle × (proximity_i / Σ proximity_j)
-```
-
-See **[full methodology](about.html)** for equations, limitations, and references.
-
----
-
-## Getting Started
-
-```bash
-git clone https://github.com/notivanly/BridgeGame
-cd BridgeGame
-# Open index.html in any modern browser — no build step needed
-```
-
-Or just visit the **[live site](https://notivanly.github.io/BridgeGame/)**.
-
----
-
-## Keyboard Shortcuts
-
-| Key | Action |
-|---|---|
-| `Ctrl+Z` | Undo |
-| `S` | Toggle symmetry mode |
-| `M` | Toggle slow motion |
-| `N` | Toggle night mode |
-| `D` | Delete mode |
-| `R` | Replay playback |
-| `?` | Keyboard shortcuts |
-| `Esc` | Reset zoom / dismiss |
-
----
-
-## Changelog
-
-See **[changelog.html](changelog.html)** for full version history.
-
----
-
-## Educational Use
-
-Load Limit is designed to accompany structural engineering education at the high school and introductory college level. The guided lessons cover:
-1. Why simple beams fail at mid-span
-2. Why triangles are the foundation of strong structures
-3. Material selection and cost-efficiency
-4. Tension vs compression identification
-
-Teachers: feel free to use this tool freely. **[Leave feedback](feedback.html)** or open an issue on GitHub.
-
----
-
-## Limitations
-
-- 2D planar analysis only (no out-of-plane effects)
-- Simplified material model (no fatigue, plastic deformation, or creep)
-- Approximated joint masses from beam geometry
-- Linear load distribution (not true FEA)
-- No soil-structure interaction
-
----
-
-## Author
-
-Built by **notivanly** as an independent engineering project.
-
-**[Play the game](https://notivanly.github.io/BridgeGame/)** · **[Read the docs](https://notivanly.github.io/BridgeGame/about.html)** · **[Leave feedback](https://notivanly.github.io/BridgeGame/feedback.html)**
+- Materials, vehicles and templates: the `MATERIALS`, `VEHICLES` and `TEMPLATES` objects at the top of the first `<script>`.
+- Challenges: the `CH` array in the second `<script>`.
+- Sag limit: search for `1.5` in `checkResult`.
+- Source link in the header: the `pill` link.

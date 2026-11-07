@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Load Limit | Bridge Engineering Lab</title>
+<meta name="description" content="Design a bridge, then test it in 3D. Real structural analysis with tension, compression, buckling, bracing, wind and earthquakes, from a bicycle to a 200 tonne train.">
+<meta name="theme-color" content="#0c0c0d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23202123'/%3E%3Cpath d='M3 20h26M5 20l5-9 6 9 6-9 5 9' fill='none' stroke='%23fff' stroke-width='1.6' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='11' r='2.4' fill='%23ff4f2e'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600&family=Martian+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   LOAD LIMIT | Bridge Engineering Lab
+   Same design system as the rest of the portfolio: graphite gradients, bone
+   white type, one signal red. Hanken Grotesk for copy, Martian Mono for data.
+   ========================================================================== */
+:root {
+  --bg: #0c0c0d; --ink: #f4f4f1; --ink-2: rgba(244,244,241,.68); --ink-3: rgba(244,244,241,.44);
+  --line: rgba(255,255,255,.15); --signal: #ff4f2e; --amber: #ffbe3c; --blue: #6eb0ff;
+  --frame: 10px; --pad: clamp(22px, 3.4vw, 52px); --colB: 26vw; --ease: cubic-bezier(.2,.7,.1,1);
+  --sans: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "Martian Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; background: var(--bg); -webkit-text-size-adjust: 100%; }
+html.modal-open { overflow: hidden; }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+a { color: inherit; text-decoration: none; }
+ul, ol { list-style: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+select { font: inherit; }
+::selection { background: var(--signal); color: #fff; }
+:focus-visible { outline: 2px solid #fff; outline-offset: 3px; border-radius: 3px; }
+.mono { font-family: var(--mono); }
+.skip { position: fixed; left: 12px; top: -60px; z-index: 100; background: #fff; color: #111; padding: .6rem 1rem; border-radius: 999px; font-size: .8rem; }
+.skip:focus { top: 12px; }
+
+/* header */
+.site-header { position: fixed; top: 0; left: 0; right: 0; z-index: 50; height: 96px; pointer-events: none; }
+.site-header::before { content: ""; position: absolute; inset: 0 0 -24px 0; z-index: -1; background: linear-gradient(to bottom, rgba(12,12,13,.8), rgba(12,12,13,0)); transition: opacity .5s ease; }
+.is-top .site-header::before { opacity: 0; }
+.site-header > * { pointer-events: auto; }
+.brand { position: absolute; left: calc(var(--frame) + var(--pad)); top: 30px; display: flex; flex-direction: column; gap: 5px; }
+.brand-name { font-weight: 600; font-size: .8125rem; letter-spacing: .1em; line-height: 1.1; }
+.brand-sub { font-size: .625rem; letter-spacing: .14em; font-weight: 500; opacity: .62; line-height: 1.1; }
+.nav { position: absolute; left: calc(var(--frame) + var(--colB)); top: 30px; display: flex; font-size: .8125rem; font-weight: 500; }
+.nav a { position: relative; opacity: .7; transition: opacity .25s ease; padding-bottom: 4px; }
+.nav a + a { margin-left: 1.9em; }
+.nav a + a::before { content: "/"; position: absolute; left: -1.25em; opacity: .45; }
+.nav a:hover, .nav a.is-active { opacity: 1; }
+.nav a.is-active::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: currentColor; }
+.pill { position: absolute; right: calc(var(--frame) + var(--pad)); top: 22px; padding: .68rem 1.15rem; font-size: .78rem; font-weight: 500; border: 1px solid rgba(255,255,255,.55); border-radius: 999px; background: rgba(255,255,255,.03); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); transition: background .3s ease, color .3s ease; }
+.pill:hover { background: #fff; color: #111; }
+.ico { width: .72rem; height: .72rem; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; margin-left: .35rem; }
+.rail { position: fixed; right: calc(var(--frame) + 14px); top: 50%; transform: translateY(-50%); z-index: 40; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.rail a { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+.rail .num { font-size: .58rem; opacity: 0; transform: translateX(6px); transition: opacity .4s ease, transform .5s var(--ease); }
+.rail i { display: block; width: 14px; height: 1px; background: rgba(255,255,255,.4); transition: width .5s var(--ease), background .3s ease; }
+.rail a.is-active .num { opacity: .9; transform: none; }
+.rail a.is-active i { width: 30px; background: #fff; }
+
+/* slides */
+main { padding-top: var(--frame); }
+.slide { --g1: #5d5e61; --g2: #37383b; --g3: #18191b; --gx: 70%; --gy: 38%;
+  position: relative; isolation: isolate; overflow: hidden;
+  height: calc(100vh - 2 * var(--frame)); height: calc(100svh - 2 * var(--frame)); min-height: 780px;
+  margin: 0 var(--frame) var(--frame); border-radius: 24px;
+  background: radial-gradient(130% 110% at var(--gx) var(--gy), var(--g1) 0%, var(--g2) 46%, var(--g3) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+.slide[data-tone="light"] { --g1: #77787b; --g2: #47484b; --g3: #1c1d1f; }
+.slide[data-tone="dark"] { --g1: #36373a; --g2: #1f2022; --g3: #0e0f10; }
+.slide::after { content: ""; position: absolute; inset: 0; z-index: 6; pointer-events: none; opacity: .1; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.stage { position: absolute; inset: 0; z-index: 1; opacity: 0; }
+.slide.in .stage { opacity: 1; transition: opacity 1.2s ease; }
+.stage canvas { display: block; touch-action: none; }
+.index { position: absolute; z-index: 3; left: var(--pad); top: calc(13% - 28px); font-size: .72rem; letter-spacing: .04em; }
+
+/* copy + type */
+.copy, .col { position: absolute; z-index: 3; left: var(--pad); top: 13%; width: clamp(260px, 26vw, 400px); }
+.col { bottom: 74px; overflow-y: auto; overflow-x: hidden; padding-right: 10px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.25) transparent; }
+.title { font-weight: 500; font-size: clamp(1.5rem, 2.9vw, 3.3rem); line-height: 1.06; letter-spacing: .012em; }
+.bench .title { font-size: clamp(1.5rem, 2.5vw, 2.8rem); }
+.line { display: block; overflow: hidden; padding: .06em 0; margin: -.06em 0; }
+.line > span { display: block; transform: translateY(112%); }
+.slide.in .line > span { transform: none; transition: transform 1.2s var(--ease); transition-delay: calc(var(--i, 0) * 100ms + 200ms); }
+.desc { margin-top: .9rem; max-width: 24rem; font-size: .8rem; line-height: 1.65; color: var(--ink-2); }
+.banner { margin-top: .8rem; padding-left: .8rem; border-left: 1px solid var(--signal); font-size: .74rem; line-height: 1.55; color: var(--ink-2); max-width: 24rem; }
+.banner:empty { display: none; }
+[data-r] { opacity: 0; }
+.slide.in [data-r] { opacity: 1; transition: opacity 1s ease calc(var(--d, 0) * 1ms + 300ms); }
+.foot { position: absolute; z-index: 4; left: var(--pad); bottom: 26px; font-size: .8rem; font-weight: 500; }
+.cue { display: inline-flex; align-items: center; }
+.cue svg { width: .8rem; height: .8rem; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; margin-right: .55rem; animation: nudge 1.9s var(--ease) infinite; }
+@keyframes nudge { 0%, 100% { transform: translateY(-2px); } 50% { transform: translateY(3px); } }
+
+/* buttons + accordions */
+.btns { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .55rem; }
+.btn { padding: .45rem .85rem; font-size: .72rem; font-weight: 500; border: 1px solid rgba(255,255,255,.45); border-radius: 999px; transition: background .25s ease, color .25s ease, border-color .25s ease; text-align: left; }
+.btn:hover { background: #fff; color: #111; }
+.btn.primary { border-color: var(--signal); }
+.btn.primary:hover { background: var(--signal); border-color: var(--signal); color: #fff; }
+.btn[aria-pressed="true"] { background: #fff; color: #111; border-color: #fff; }
+.accs { margin-top: 1rem; border-top: 1px solid var(--line); }
+.acc { border-bottom: 1px solid var(--line); }
+.acc > summary { list-style: none; cursor: pointer; padding: .75rem 0; font-size: .82rem; font-weight: 500; display: flex; justify-content: space-between; align-items: center; }
+.acc > summary::-webkit-details-marker { display: none; }
+.acc > summary::after { content: "+"; font-family: var(--mono); font-size: .8rem; color: var(--ink-3); }
+.acc[open] > summary::after { content: "\2212"; }
+.acc > div { padding: 0 0 .9rem; }
+.acc p.h { margin-top: .7rem; font-size: .7rem; color: var(--ink-3); }
+.acc p.h:first-child { margin-top: 0; }
+.mat, .veh, .chal { display: grid; grid-template-columns: 1fr auto; gap: .1rem .8rem; width: 100%; padding: .55rem .7rem; margin-top: .4rem; text-align: left; border: 1px solid var(--line); border-radius: 12px; transition: border-color .2s ease, background .2s ease; }
+.mat:hover, .veh:hover, .chal:hover { border-color: rgba(255,255,255,.5); }
+.mat[aria-pressed="true"], .veh[aria-pressed="true"], .chal[aria-pressed="true"] { border-color: #fff; background: rgba(255,255,255,.1); }
+.mn, .veh span, .chal span { font-size: .8rem; font-weight: 500; }
+.mp, .veh em, .chal em { font-family: var(--mono); font-style: normal; font-size: .64rem; color: var(--ink-2); align-self: center; }
+.mb, .chal small { grid-column: 1 / -1; font-size: .68rem; color: var(--ink-3); }
+.vgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 .4rem; }
+.vgrid .veh { grid-template-columns: 1fr; }
+.row2 { display: flex; align-items: center; justify-content: space-between; gap: .8rem; margin-top: .55rem; font-size: .72rem; color: var(--ink-2); }
+.row2 select { background: rgba(255,255,255,.08); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: .25rem .6rem; font-size: .72rem; }
+.row2 select option { color: #111; }
+.chk { display: flex; align-items: center; gap: .6rem; margin-top: .55rem; font-size: .74rem; color: var(--ink-2); cursor: pointer; }
+.chk input { appearance: none; -webkit-appearance: none; width: 30px; height: 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,.5); position: relative; cursor: pointer; transition: background .25s ease; flex: none; }
+.chk input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: #fff; transition: transform .25s var(--ease); }
+.chk input:checked { background: var(--signal); border-color: var(--signal); }
+.chk input:checked::after { transform: translateX(14px); }
+.tips li { margin-top: .5rem; font-size: .72rem; line-height: 1.55; color: var(--ink-2); }
+.tips b { color: var(--ink); font-weight: 600; }
+.sgrid { display: grid; grid-template-columns: 1fr 1fr; gap: .3rem .8rem; }
+.sgrid div { padding: .4rem 0; border-top: 1px solid var(--line); font-size: .7rem; color: var(--ink-3); }
+.sgrid b { display: block; margin-top: .15rem; font-family: var(--mono); font-size: .88rem; font-weight: 500; color: var(--ink); }
+.achs li { padding: .45rem 0; border-top: 1px solid var(--line); font-size: .7rem; color: var(--ink-3); }
+.achs li b { display: block; font-size: .76rem; font-weight: 500; }
+.achs li.on { color: var(--ink-2); } .achs li.on b { color: #fff; }
+.legend3 { display: flex; gap: 1rem; margin-top: .5rem; font-size: .66rem; color: var(--ink-2); }
+.legend3 i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: .35rem; vertical-align: middle; }
+
+/* floating toolbar */
+.tools { position: absolute; z-index: 4; left: 31vw; right: calc(var(--pad) + 120px); top: 104px; display: flex; flex-wrap: wrap; justify-content: center; gap: .1rem; padding: .3rem; width: fit-content; margin: 0 auto; max-width: calc(69vw - var(--pad) - 120px); background: rgba(12,12,13,.55); border: 1px solid var(--line); border-radius: 22px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.tool { display: inline-flex; align-items: center; gap: .35rem; padding: .4rem .58rem; font-size: .68rem; font-weight: 500; border-radius: 999px; color: var(--ink-2); transition: background .2s ease, color .2s ease; white-space: nowrap; }
+.tool svg { width: .95rem; height: .95rem; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.tool:hover { color: #fff; background: rgba(255,255,255,.1); }
+.tool[aria-pressed="true"] { background: #fff; color: #111; }
+.tool.tog[aria-pressed="true"] { background: rgba(255,79,46,.92); color: #fff; }
+.tool.primary { background: var(--signal); color: #fff; }
+.tool.primary:hover { background: #ff6a4d; }
+.tool.sep { margin-left: .4rem; position: relative; }
+.tool.sep::before { content: ""; position: absolute; left: -.3rem; top: 22%; bottom: 22%; width: 1px; background: var(--line); }
+.toast { position: absolute; z-index: 5; left: 50%; top: 208px; transform: translate(-50%, -6px); max-width: 60vw; padding: .5rem 1rem; font-size: .74rem; color: #fff; background: rgba(255,79,46,.18); border: 1px solid var(--signal); border-radius: 999px; opacity: 0; pointer-events: none; transition: opacity .3s ease, transform .3s var(--ease); }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+.result { position: absolute; z-index: 4; left: 31vw; bottom: 96px; max-width: 34vw; font-size: .74rem; color: var(--ink-2); }
+.result:empty { display: none; }
+.result b { display: block; font-size: 1.05rem; font-weight: 500; color: #fff; margin-bottom: .2rem; }
+.result span { line-height: 1.5; }
+
+/* readouts */
+.hud { position: absolute; z-index: 4; right: var(--pad); bottom: 22px; display: flex; gap: clamp(12px, 1.6vw, 28px); padding-top: .8rem; border-top: 1px solid var(--line); }
+.hud > div { display: flex; flex-direction: column; gap: .3rem; }
+.hud dt { font-size: .64rem; line-height: 1.2; color: var(--ink-3); }
+.hud dd { font-family: var(--mono); font-size: .84rem; font-weight: 500; white-space: nowrap; }
+.hud .warn dd { color: var(--signal); } .hud .good dd { color: #8fe3a0; }
+
+/* analysis + method */
+.stats2 { margin-top: 1.4rem; }
+.stats2 .sgrid { grid-template-columns: 1fr 1fr; }
+.tables { position: absolute; z-index: 3; left: 36vw; right: var(--pad); top: 13%; bottom: 7%; display: flex; flex-direction: column; opacity: 0; }
+.slide.in .tables { opacity: 1; transition: opacity 1.2s ease .2s; }
+.tables h3 { font-size: .86rem; font-weight: 500; margin-bottom: .5rem; }
+.tscroll { overflow: auto; min-height: 0; flex: 1; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.25) transparent; }
+.tbl, .rt { width: 100%; border-collapse: collapse; }
+.tbl th, .rt th { position: sticky; top: 0; background: rgba(24,25,27,.92); font-weight: 400; font-size: .68rem; color: var(--ink-3); text-align: left; padding: .4rem .6rem .4rem 0; border-bottom: 1px solid var(--line); }
+.tbl td, .rt td { font-family: var(--mono); font-size: .72rem; padding: .42rem .6rem .42rem 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.rt td:first-child, .tbl td:first-child { font-family: var(--sans); }
+.rt tr.tot td { color: #fff; font-weight: 500; }
+.t-com { color: var(--signal); } .t-amb { color: var(--amber); } .t-zer { color: var(--ink-3); }
+.fb { display: inline-block; width: 80px; height: 6px; background: rgba(255,255,255,.08); vertical-align: middle; position: relative; }
+.fb i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #fff, var(--amber), var(--signal)); }
+.empty { padding: .8rem 0; font-size: .76rem; color: var(--ink-3); font-family: var(--sans) !important; }
+.formulas { position: absolute; z-index: 3; left: 36vw; right: var(--pad); top: 13%; display: grid; grid-template-columns: 1fr 1fr; gap: 0 3.2rem; }
+.formula { padding: .95rem 0 1.05rem; border-top: 1px solid var(--line); }
+.formula b { display: block; font-weight: 500; font-size: .88rem; margin-bottom: .45rem; }
+.formula code { display: block; font-family: var(--mono); font-size: .74rem; line-height: 1.8; color: var(--ink); }
+.formula p { margin-top: .4rem; font-size: .7rem; line-height: 1.55; color: var(--ink-3); }
+.methodtbl { position: absolute; z-index: 3; left: 36vw; right: var(--pad); top: 55%; bottom: 80px; overflow: auto; scrollbar-width: thin; }
+.fine { position: absolute; z-index: 3; left: 36vw; right: var(--pad); bottom: 54px; font-size: .72rem; line-height: 1.6; color: var(--ink-2); max-width: 52rem; }
+.legal { position: absolute; z-index: 4; left: var(--pad); right: var(--pad); bottom: 22px; display: flex; justify-content: space-between; gap: 2rem; font-size: .68rem; color: var(--ink-3); }
+
+/* modal */
+.modal { position: fixed; inset: 0; z-index: 120; display: flex; align-items: center; justify-content: center; padding: 1.5rem; background: rgba(8,8,9,.78); backdrop-filter: blur(6px); }
+.modal[hidden] { display: none; }
+.panel { width: min(640px, 100%); max-height: 86vh; overflow: auto; padding: 1.6rem 1.8rem; background: #1a1b1d; border: 1px solid var(--line); border-radius: 20px; }
+.panel h2 { font-size: 1.15rem; font-weight: 500; margin-bottom: .9rem; }
+.panel p { font-size: .84rem; line-height: 1.65; color: var(--ink-2); margin-top: .6rem; }
+.panel p:first-child { margin-top: 0; }
+.panel strong { color: #fff; font-weight: 600; }
+.panel ul { margin-top: .6rem; } .panel li { font-size: .8rem; line-height: 1.6; color: var(--ink-2); margin-top: .35rem; }
+.panel .mbtns { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1.2rem; }
+.opts { display: grid; gap: .45rem; margin-top: .9rem; }
+.opt.right { background: #2f7a45; border-color: #2f7a45; color: #fff; } .opt.wrong { background: #8b2d1e; border-color: #8b2d1e; color: #fff; }
+.qx { min-height: 2.6em; }
+.keys { columns: 2; } .keys kbd { font-family: var(--mono); font-size: .7rem; padding: .1rem .4rem; border: 1px solid var(--line); border-radius: 6px; margin-right: .4rem; color: #fff; }
+.log li { margin-top: .6rem; }
+.noscript { position: fixed; inset: auto 0 0 0; z-index: 200; padding: 1rem; background: #fff; color: #111; text-align: center; font-size: .85rem; }
+
+/* small screens */
+@media (max-width: 860px) {
+  :root { --colB: var(--pad); }
+  .nav, .rail { display: none; }
+  .slide { min-height: calc(100svh - 20px); height: auto; border-radius: 18px; padding-bottom: 80px; }
+  .copy, .col { position: relative; left: auto; top: auto; bottom: auto; width: auto; padding: 108px var(--pad) 0; overflow: visible; }
+  .index { top: 84px; }
+  .title, .bench .title { font-size: clamp(1.7rem, 8.6vw, 2.8rem); }
+  .bench { display: flex; flex-direction: column; }
+  .bench .col { display: contents; }
+  .bench .intro { order: 1; padding: 108px var(--pad) 0; }
+  .bench .banner { order: 2; margin: .8rem var(--pad) 0; }
+  .bench .tools { position: relative; order: 3; left: auto; right: auto; top: auto; width: auto; max-width: none; margin: 1rem var(--pad) 0; justify-content: flex-start; }
+  .bench .stage { position: relative; order: 4; height: 60svh; min-height: 340px; margin-top: .6rem; opacity: 1; }
+  .bench .toast { top: auto; bottom: 90px; max-width: 86vw; }
+  .bench .result { position: relative; order: 5; left: auto; bottom: auto; max-width: none; margin: .8rem var(--pad) 0; }
+  .bench .hud { position: relative; order: 6; right: auto; bottom: auto; margin: 1rem var(--pad) 0; flex-wrap: wrap; }
+  .bench .accs { order: 7; margin: 1rem var(--pad) 0; }
+  .foot { display: none; }
+  .tables, .formulas, .methodtbl, .fine { position: relative; left: auto; right: auto; top: auto; bottom: auto; margin: 1.6rem var(--pad) 0; }
+  .tables { opacity: 1; } .tscroll { max-height: 360px; }
+  .formulas { grid-template-columns: 1fr; }
+  .legal { position: relative; left: auto; right: auto; bottom: auto; flex-direction: column; gap: .6rem; margin: 2rem var(--pad) 0; }
+}
+@media (max-width: 1180px) and (min-width: 861px) { .tool .t { display: none; } .tool { padding: .5rem .55rem; } .tools { right: calc(var(--pad) + 100px); } }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .stage, .tables, .line > span, [data-r] { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .cue svg { animation: none; }
+}
+</style>
+</head>
+
+<body>
+<a class="skip" href="#simulator">Skip to the bridge lab</a>
+<header class="site-header">
+  <a class="brand" href="#home" aria-label="Load Limit, back to top"><span class="brand-name">LOAD LIMIT</span><span class="brand-sub">BRIDGE ENGINEERING LAB</span></a>
+  <nav class="nav" aria-label="Sections"><a href="#simulator" data-nav="0">Lab</a><a href="#analysis" data-nav="1">Analysis</a><a href="#method" data-nav="2">Method</a></nav>
+  <a class="pill" href="https://github.com/notivanly/BridgeGame" target="_blank" rel="noopener noreferrer">Source<svg class="ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 9l6-6M4 3h5v5"/></svg></a>
+</header>
+<aside class="rail" aria-label="Section progress">
+  <a href="#simulator" data-rail="0" aria-label="Lab"><span class="num mono">001</span><i></i></a>
+  <a href="#analysis" data-rail="1" aria-label="Analysis"><span class="num mono">002</span><i></i></a>
+  <a href="#method" data-rail="2" aria-label="Method"><span class="num mono">003</span><i></i></a>
+</aside>
+
+<main id="home">
+  <!-- ===== 001 LAB ===== -->
+  <section class="slide bench" id="simulator" data-slide data-tone="light" style="--gx:64%; --gy:36%" aria-label="Bridge lab"><span id="slideBenchAnchor"></span>
+    <div class="stage"><canvas id="cv" aria-label="Bridge canvas. Pointer-based: in the side view, drag from an anchor to draw beams. In 3D, drag to orbit the camera. Results are listed below the canvas."></canvas></div>
+    <p class="index mono"><span>001</span> / 003</p>
+
+    <div class="col">
+      <div class="intro">
+        <h1 class="title"><span class="line"><span style="--i:0">LOAD</span></span><span class="line"><span style="--i:1">LIMIT</span></span></h1>
+        <p class="desc" data-r style="--d:450">Design a bridge across the gorge, then test it in 3D with real vehicles. Every beam has a cost, a strength and a way to fail.</p>
+      </div>
+      <p class="banner" id="chalBanner" data-r style="--d:520"></p>
+      <div class="accs" data-r style="--d:620">
+        <details class="acc" open><summary>Materials</summary><div>
+          <div id="mats"></div>
+          <p class="h">Cross members and deck</p>
+          <label class="row2">Cross-member material <select id="selCross"></select></label>
+          <label class="row2">Bracing <select id="selBrace"><option value="0">Floor beams only</option><option value="1">Deck bracing</option><option value="2">Full bracing</option></select></label>
+          <label class="row2">Deck width <select id="selWidth"><option value="4">4 m</option><option value="6">6 m</option><option value="8">8 m</option></select></label>
+          <p class="desc">The cost shown includes the second truss, the floor beams and the bracing, not just the beams you draw.</p>
+        </div></details>
+        <details class="acc"><summary>Build tools</summary><div>
+          <p class="h">Templates</p>
+          <div class="btns" id="tmpls"><button type="button" class="btn" data-tpl="simple">Simple beam</button><button type="button" class="btn" data-tpl="pratt">Pratt truss</button><button type="button" class="btn" data-tpl="warren">Warren truss</button><button type="button" class="btn" data-tpl="arch">Arch bridge</button><button type="button" class="btn" data-tpl="suspension">Suspension</button></div>
+          <div class="btns"><button type="button" class="btn" id="bCopy">Copy left half</button></div>
+          <p class="h">Lessons</p>
+          <div class="btns" id="lessons"></div>
+        </div></details>
+        <details class="acc"><summary>Test tools</summary><div>
+          <label class="chk"><input type="checkbox" id="cBox"> Sandbox mode (unlimited budget)</label>
+          <label class="chk"><input type="checkbox" id="cAuto"> Auto-spawn vehicles</label>
+          <p class="h">Time scale</p>
+          <div class="btns"><button type="button" class="btn" data-ts="0.5">0.5&times;</button><button type="button" class="btn" data-ts="1" aria-pressed="true">1&times;</button><button type="button" class="btn" data-ts="2">2&times;</button></div>
+          <p class="h">Disasters</p>
+          <div class="btns"><button type="button" class="btn" id="bWind">Wind burst</button><button type="button" class="btn" id="bQuake">Earthquake</button><button type="button" class="btn" id="bRain">Rain storm</button></div>
+          <div class="btns"><button type="button" class="btn" id="bQuiz">Take quiz</button></div>
+          <div class="legend3"><span><i style="background:var(--blue)"></i>Tension</span><span><i style="background:#ff8a30"></i>Compression</span><span><i style="background:var(--signal)"></i>Near snapping</span></div>
+        </div></details>
+        <details class="acc"><summary>Spawn vehicle</summary><div>
+          <p class="h">Lane</p>
+          <div class="btns"><button type="button" class="btn" data-lane="left">Left</button><button type="button" class="btn" data-lane="center" aria-pressed="true">Centre</button><button type="button" class="btn" data-lane="right">Right</button></div>
+          <div class="vgrid" id="vehs"></div>
+        </div></details>
+        <details class="acc"><summary>Challenges</summary><div id="chals"></div></details>
+        <details class="acc"><summary>Stats &amp; achievements</summary><div>
+          <div class="sgrid" id="sGrid"><div>Vehicles crossed<b id="sCross">&mdash;</b></div><div>Max load<b id="sLoad">&mdash;</b></div><div>Beams broken<b id="sBroke">&mdash;</b></div><div>Peak stress<b id="sPeak">&mdash;</b></div></div>
+          <p class="h">Achievements</p><ul class="achs" id="achs"></ul>
+        </div></details>
+        <details class="acc"><summary>Extra</summary><div>
+          <p class="h">Analysis</p>
+          <div class="btns"><button type="button" class="btn" id="bReport">Engineering report</button><button type="button" class="btn" id="bCsv">Export CSV</button><button type="button" class="btn" id="bCmpSave">Save for comparison</button><button type="button" class="btn" id="bCmp">Compare designs</button></div>
+          <p class="h">Save design</p>
+          <div class="btns"><button type="button" class="btn" id="bSave">Save current</button><button type="button" class="btn" id="bRestore">Restore auto-save</button></div>
+          <div class="btns"><button type="button" class="btn" id="bBest">Best scores</button><button type="button" class="btn" id="bLog">Update log</button><button type="button" class="btn" id="bHelp">How to play</button><button type="button" class="btn" id="bKeys">Shortcuts</button></div>
+        </div></details>
+        <details class="acc"><summary>Tips &amp; reference</summary><div><ul class="tips">
+          <li><b>Triangles are strong.</b> Every span needs diagonal bracing or it will sag.</li>
+          <li><b>Resonance builds.</b> Several vehicles in a row can make a bridge oscillate.</li>
+          <li><b>Blue is tension, orange is compression.</b> Force Diagram shows the load paths.</li>
+          <li><b>Suspension:</b> cable from tower top, down to the hangers, to the deck.</li>
+          <li><b>Screws:</b> click a beam with the Screw tool to add a joint anywhere along it.</li>
+          <li><b>Amber, then red, then snap.</b> Watch for red beams before sending something heavier.</li>
+          <li><b>It is 3D.</b> Try a wind burst, or put a heavy vehicle in the left lane.</li></ul></div></details>
+      </div>
+    </div>
+
+    <div class="tools" id="tools" role="toolbar" aria-label="Tools" data-r style="--d:600"></div>
+    <p class="toast" id="msg" role="status"></p>
+    <div class="result" id="result" role="status"></div>
+    <dl class="hud" id="hud">
+      <div><dt>Budget</dt><dd id="hB">$300,000</dd></div>
+      <div><dt>Spent</dt><dd id="hSp">$0</dd></div>
+      <div><dt>Beams</dt><dd id="hN">0</dd></div>
+      <div><dt>Length</dt><dd id="hL">0 m</dd></div>
+      <div><dt>Status</dt><dd id="hS">Ready</dd></div>
+      <div><dt>Peak stress</dt><dd id="hSt">&mdash;</dd></div>
+      <div><dt>Sag</dt><dd id="hSag">&mdash;</dd></div>
+    </dl>
+    <div class="foot"><a class="cue" href="#analysis"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2v8M2.5 6.5L6 10l3.5-3.5"/></svg>Scroll to explore</a></div>
+  </section>
+
+  <!-- ===== 002 ANALYSIS ===== -->
+  <section class="slide" id="analysis" data-slide data-tone="dark" style="--gx:68%; --gy:36%" aria-label="Analysis">
+    <p class="index mono"><span>002</span> / 003</p>
+    <div class="copy">
+      <h2 class="title"><span class="line"><span style="--i:0">WHAT THE</span></span><span class="line"><span style="--i:1">BRIDGE FELT</span></span></h2>
+      <p class="desc" data-r style="--d:450">Every beam, ranked by how close it is to failing. Run a test and this table fills with real forces in kilonewtons.</p>
+      <div class="stats2" data-r style="--d:520"><div class="sgrid" id="rStats"></div></div>
+    </div>
+    <div class="tables" data-r style="--d:500"><h3>Beams in the near truss, most stressed first</h3><div class="tscroll"><table class="tbl" id="tBars"></table></div></div>
+  </section>
+
+  <!-- ===== 003 METHOD ===== -->
+  <section class="slide" id="method" data-slide data-tone="light" style="--gx:66%; --gy:40%" aria-label="How it works">
+    <p class="index mono"><span>003</span> / 003</p>
+    <div class="copy">
+      <h2 class="title"><span class="line"><span style="--i:0">A REAL 3D</span></span><span class="line"><span style="--i:1">STRUCTURE</span></span></h2>
+      <p class="desc" data-r style="--d:450">You draw one side. The game builds two parallel trusses, joins them with floor beams and bracing, and analyses every bar in three dimensions.</p>
+    </div>
+    <div class="formulas" data-r style="--d:500">
+      <article class="formula"><b>Bars carry only axial force</b><code>F = (EA / L) &middot; elongation</code><p>Every beam is a pin-jointed bar. Positive force is tension, negative is compression.</p></article>
+      <article class="formula"><b>Buckling beats yielding</b><code>P<sub>cr</sub> = &pi;&sup2; E I / L&sup2;</code><p>A long compressed bar fails at P<sub>cr</sub>, well below its yield strength. A tube resists far better than a solid square.</p></article>
+      <article class="formula"><b>Statics and dynamics</b><code>K u = F    m a = F</code><p>The report solves the direct stiffness equations. The test runs the dynamics, with progressive collapse when a bar snaps.</p></article>
+      <article class="formula"><b>Why bracing</b><code>sway needs a diagonal</code><p>A pair of side trusses is free to lean sideways. Diagonals in the deck and top planes make each panel rigid.</p></article>
+    </div>
+    <div class="methodtbl" data-r style="--d:600"><table class="rt" id="matTable"></table></div>
+    <p class="fine" data-r style="--d:700">Strengths are realistic, but stiffness is scaled down so sag is visible in the game. Vehicles are moving point loads on the deck. Wind, rain and earthquakes are simplified. Not intended for structural design or safety decisions.</p>
+    <div class="legal"><span>LOAD LIMIT. Built for curiosity &amp; education.</span><span>Units: metres, kilograms, seconds, newtons.</span></div>
+  </section>
+</main>
+
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mTitle"><div class="panel"><h2 id="mTitle"></h2><div id="mBody"></div><div class="mbtns" id="mBtns"></div></div></div>
+<noscript><p class="noscript">Load Limit needs JavaScript. Please enable it to play.</p></noscript>
+
+<script>
+/* ==========================================================================
+   LOAD LIMIT: engine
+   A bridge is designed on a side view, then built as a real 3D structure:
+   two parallel trusses joined by floor beams and bracing. Every member is a
+   pin-jointed axial bar. The structure can be analysed statically (direct
+   stiffness method) or run dynamically (explicit spring-mass simulation with
+   member failure, moving vehicles, wind, earthquake and rain).
+   Units: metres, kilograms, seconds, newtons. y is up, x runs along the span,
+   z is across the deck.
+   ========================================================================== */
+var LL = (function () {
+  'use strict';
+  var G = 9.81, SPAN = 24, DECK_Y = 0, WATER_Y = -10, cfg = { gameE: 1 / 50 };   // stiffness is scaled down so sag is visible
+  var HW_MASS = 60;                                                      // joint hardware, kg
+  var SLAB = 120;                                                        // road slab, kg per m^2
+
+  /* A = section area (m^2), E (Pa), rho (kg/m^3), st / sc = tension / compression strength (Pa),
+     psi = section stiffness factor: I = psi * A^2 (a tube is far stiffer than a solid square) */
+  var MATERIALS = {
+    wood:     { id: 'wood',     name: 'Wood',         cost: 14,  A: 0.02,   E: 11e9,  rho: 550,  st: 35e6,  sc: 25e6,  psi: 0.083, cable: false, blurb: 'Cheap & light. Snaps under heavy loads.' },
+    steel:    { id: 'steel',    name: 'Steel',        cost: 135, A: 0.004,  E: 200e9, rho: 7850, st: 250e6, sc: 250e6, psi: 0.6,   cable: false, blurb: 'Strongest standard material.' },
+    concrete: { id: 'concrete', name: 'Concrete',     cost: 68,  A: 0.04,   E: 30e9,  rho: 2400, st: 3e6,   sc: 30e6,  psi: 0.083, cable: false, blurb: 'Decent strength, very heavy.' },
+    cable:    { id: 'cable',    name: 'Cable',        cost: 45,  A: 0.0008, E: 140e9, rho: 7850, st: 800e6, sc: 0,     psi: 0,     cable: true,  blurb: 'Tension only. Suspension bridges.' },
+    carbon:   { id: 'carbon',   name: 'Carbon Fiber', cost: 400, A: 0.0035, E: 150e9, rho: 1600, st: 600e6, sc: 500e6, psi: 0.9,   cable: false, blurb: 'Ultra-strong, ultra-light.' }
+  };
+  Object.keys(MATERIALS).forEach(function (k) {
+    var m = MATERIALS[k]; m.massPerM = m.rho * m.A; m.capT = m.st * m.A; m.capCyield = m.sc * m.A; m.I = m.psi * m.A * m.A;
+  });
+
+  /* axles: dx from the vehicle centre along travel, f = share of the weight. track = wheel spacing across the lane */
+  var VEHICLES = {
+    bicycle:   { name: 'Bicycle',      mass: 15,     len: 1.8,  wid: 0.5, hgt: 1.1, speed: 5,  track: 0.05, axles: [[-0.5, 0.45], [0.5, 0.55]], note: '' },
+    ambulance: { name: 'Ambulance',    mass: 2200,   len: 5.6,  wid: 2.0, hgt: 2.4, speed: 20, track: 1.6,  axles: [[-1.8, 0.4], [1.8, 0.6]], note: 'fast' },
+    sedan:     { name: 'Sedan',        mass: 1400,   len: 4.5,  wid: 1.8, hgt: 1.4, speed: 12, track: 1.5,  axles: [[-1.4, 0.5], [1.4, 0.5]], note: '' },
+    van:       { name: 'Van',          mass: 2800,   len: 5.2,  wid: 2.0, hgt: 2.2, speed: 10, track: 1.6,  axles: [[-1.7, 0.45], [1.7, 0.55]], note: '' },
+    boxtruck:  { name: 'Box Truck',    mass: 9000,   len: 8.0,  wid: 2.5, hgt: 3.2, speed: 10, track: 2.0,  axles: [[-3.0, 0.35], [2.4, 0.33], [3.6, 0.32]], note: '' },
+    bus:       { name: 'City Bus',     mass: 12000,  len: 12.0, wid: 2.5, hgt: 3.2, speed: 9,  track: 2.0,  axles: [[-4.2, 0.4], [3.6, 0.6]], note: '' },
+    monster:   { name: 'Monster Truck', mass: 8500,  len: 5.2,  wid: 3.0, hgt: 2.9, speed: 8,  track: 2.7,  axles: [[-1.8, 0.5], [1.8, 0.5]], note: 'wide' },
+    semi:      { name: 'Semi',         mass: 18000,  len: 16.0, wid: 2.5, hgt: 4.0, speed: 10, track: 2.0,  axles: [[-6.0, 0.14], [-4.8, 0.2], [-3.6, 0.2], [5.4, 0.23], [6.6, 0.23]], note: '' },
+    tank:      { name: 'Tank',         mass: 60000,  len: 8.0,  wid: 3.6, hgt: 2.4, speed: 5,  track: 3.0,  axles: [[-3.2, 0.2], [-1.6, 0.2], [0, 0.2], [1.6, 0.2], [3.2, 0.2]], note: '' },
+    train:     { name: 'Train',        mass: 200000, len: 20.0, wid: 3.0, hgt: 4.0, speed: 8,  track: 2.4,  axles: [[-8, 0.15], [-6.4, 0.15], [-1.6, 0.2], [1.6, 0.2], [6.4, 0.15], [8, 0.15]], note: '' },
+    rocket:    { name: 'Rocket Sled',  mass: 300,    len: 4.0,  wid: 1.0, hgt: 0.8, speed: 60, track: 0.8,  axles: [[-1.2, 0.5], [1.2, 0.5]], note: 'extreme speed' }
+  };
+
+  /* ---------- design: joints + members, drawn on the side view ---------- */
+  var ANCHORS = [[0, 0], [0, -3], [0, -6], [-3, 0], [-6, 0], [24, 0], [24, -3], [24, -6], [27, 0], [30, 0]];
+  function blankDesign() {
+    var d = { joints: [], members: [], nextJ: 1, nextM: 1, width: 6, bracing: 2, crossMat: 'steel' };
+    ANCHORS.forEach(function (a) { d.joints.push({ id: d.nextJ++, x: a[0], y: a[1], anchor: true }); });
+    return d;
+  }
+  function jointAt(d, x, y, tol) { tol = tol || 1e-6; for (var i = 0; i < d.joints.length; i++) if (Math.abs(d.joints[i].x - x) < tol && Math.abs(d.joints[i].y - y) < tol) return d.joints[i]; return null; }
+  function ensureJoint(d, x, y) { var j = jointAt(d, x, y); if (!j) { j = { id: d.nextJ++, x: x, y: y, anchor: false }; d.joints.push(j); } return j; }
+  function hasMember(d, a, b) { return d.members.some(function (m) { return (m.a === a && m.b === b) || (m.a === b && m.b === a); }); }
+  function addMember(d, a, b, mat) { if (a === b || hasMember(d, a, b)) return null; var m = { id: d.nextM++, a: a, b: b, mat: mat }; d.members.push(m); return m; }
+  function memberLen(d, m) { var a = jointById(d, m.a), b = jointById(d, m.b); return Math.hypot(a.x - b.x, a.y - b.y); }
+  function jointById(d, id) { for (var i = 0; i < d.joints.length; i++) if (d.joints[i].id === id) return d.joints[i]; return null; }
+  function cleanJoints(d) { d.joints = d.joints.filter(function (j) { return j.anchor || d.members.some(function (m) { return m.a === j.id || m.b === j.id; }); }); }
+  function designCost(d) {
+    var c = 0; d.members.forEach(function (m) { c += memberLen(d, m) * MATERIALS[m.mat].cost; });
+    return c;
+  }
+
+  /* ---------- building the 3D structure ---------- */
+  function isDeck(j) { return Math.abs(j.y - DECK_Y) < 0.05 && j.x > -1e-6 && j.x < SPAN + 1e-6; }
+  function buildStructure(d) {
+    var W = d.width || 6, hw = W / 2, nodes = [], bars = [], jm = {}, cross = d.crossMat || 'steel', level = d.bracing == null ? 2 : d.bracing;
+    var used = {}; d.members.forEach(function (m) { used[m.a] = used[m.b] = true; });
+    d.joints.forEach(function (j) {
+      if (!j.anchor && !used[j.id]) return;
+      var near = nodes.push({ x: j.x, y: j.y, z: hw, x0: j.x, y0: j.y, z0: hw, fixed: !!j.anchor, jid: j.id, m: HW_MASS }) - 1;
+      var far = nodes.push({ x: j.x, y: j.y, z: -hw, x0: j.x, y0: j.y, z0: -hw, fixed: !!j.anchor, jid: j.id, m: HW_MASS }) - 1;
+      jm[j.id] = { near: near, far: far, j: j };
+    });
+    function bar(a, b, mat, kind, dm) {
+      var na = nodes[a], nb = nodes[b], L = Math.hypot(nb.x0 - na.x0, nb.y0 - na.y0, nb.z0 - na.z0); if (L < 1e-6) return -1;
+      var mt = MATERIALS[mat], k = mt.E * cfg.gameE * mt.A / L, pre = mt.cable ? 0.015 : 0, capC = mt.cable ? 0 : Math.min(mt.capCyield, Math.PI * Math.PI * mt.E * mt.I / (L * L));
+      var mass = mt.massPerM * L; na.m += mass / 2; nb.m += mass / 2;
+      bars.push({ a: a, b: b, mat: mat, kind: kind, dm: dm || 0, Lg: L, L0: L / (1 + pre), k: k, capT: mt.capT, capC: capC, cable: mt.cable, alive: true, F: 0, ratio: 0, peak: 0, peakF: 0, c: 0 });
+      return bars.length - 1;
+    }
+    var deckJ = d.joints.filter(isDeck).sort(function (p, q) { return p.x - q.x; }), memBars = {};
+    d.members.forEach(function (m) {
+      var A = jm[m.a], B = jm[m.b]; if (!A || !B) return;
+      var n1 = bar(A.near, B.near, m.mat, 'main', m.id), n2 = bar(A.far, B.far, m.mat, 'main', m.id); memBars[m.id] = [n1, n2];
+    });
+    // deck segments between consecutive deck joints
+    var segs = [], i, k;
+    for (i = 0; i + 1 < deckJ.length; i++) {
+      var ja = deckJ[i], jb = deckJ[i + 1], mem = d.members.filter(function (m) { return (m.a === ja.id && m.b === jb.id) || (m.a === jb.id && m.b === ja.id); })[0];
+      segs.push({ xa: ja.x, xb: jb.x, a: jm[ja.id], b: jm[jb.id], bars: mem ? memBars[mem.id] : [], len: jb.x - ja.x });
+      var slab = SLAB * W * (jb.x - ja.x) / 4, ids = [jm[ja.id].near, jm[ja.id].far, jm[jb.id].near, jm[jb.id].far]; ids.forEach(function (q) { nodes[q].m += slab; });
+    }
+    // cross members
+    deckJ.forEach(function (j) { if (!j.anchor) bar(jm[j.id].near, jm[j.id].far, cross, 'floor'); });
+    // One diagonal per side panel makes each panel rigid. Floor beams and struts are the panel ends.
+    var flip = 0;
+    function brace(ja, jb) { var A = jm[ja], B = jm[jb]; flip++; if (flip % 2) bar(A.near, B.far, cross, 'xbrace'); else bar(A.far, B.near, cross, 'xbrace'); }
+    if (level >= 1) d.members.forEach(function (m) { var a = jointById(d, m.a), b = jointById(d, m.b); if (isDeck(a) && isDeck(b)) brace(m.a, m.b); });
+    if (level >= 2) {
+      d.joints.forEach(function (j) { if (!j.anchor && !isDeck(j) && jm[j.id]) bar(jm[j.id].near, jm[j.id].far, cross, 'strut'); });
+      d.members.forEach(function (m) { var a = jointById(d, m.a), b = jointById(d, m.b); if (isDeck(a) && isDeck(b)) return; if (a.anchor && b.anchor) return; brace(m.a, m.b); });
+    }
+    // damping and bookkeeping
+    var cost = 0, length = 0, mass = 0, wmain = 0;
+    bars.forEach(function (b) { var mt = MATERIALS[b.mat]; cost += mt.cost * b.Lg; length += b.Lg; mass += mt.massPerM * b.Lg; });
+    nodes.forEach(function (n) { n.mass0 = n.m; });
+    bars.forEach(function (b) { var meff = Math.min(nodes[b.a].m, nodes[b.b].m); b.c = 2 * 0.06 * Math.sqrt(b.k * meff); });
+    var omax = 0, ksum = new Float64Array(nodes.length); bars.forEach(function (b) { ksum[b.a] += b.k; ksum[b.b] += b.k; });
+    nodes.forEach(function (n, q) { if (!n.fixed) omax = Math.max(omax, Math.sqrt(2 * ksum[q] / n.m)); });
+    return { design: d, width: W, nodes: nodes, bars: bars, jm: jm, segs: segs, deckJ: deckJ, cost: cost, length: length, mass: mass, dtMax: omax > 0 ? Math.min(2e-3, 0.4 / omax) : 2e-3, memBars: memBars };
+  }
+
+  /* ---------- vehicle wheel loads (bilinear onto the four deck joints) ---------- */
+  function wheelPoints(veh, x) {
+    var vt = VEHICLES[veh.type], pts = [], tw = vt.track / 2;
+    vt.axles.forEach(function (a) { var ax = x + a[0], F = vt.mass * G * a[1] * (veh.scale || 1); if (vt.track < 0.1) pts.push({ x: ax, z: veh.z, F: F }); else { pts.push({ x: ax, z: veh.z - tw, F: F / 2 }); pts.push({ x: ax, z: veh.z + tw, F: F / 2 }); } });
+    return pts;
+  }
+  function segAt(S, x) { var s = S.segs, i; for (i = 0; i < s.length; i++) if (x >= s[i].xa && x <= s[i].xb) return s[i]; return null; }
+  function segAlive(S, seg) { if (!seg) return false; if (!seg.bars.length) return false; return seg.bars.some(function (bi) { return bi >= 0 && S.bars[bi].alive; }); }
+  function addVehicleLoads(S, veh, fx, fy, fz, supportedOnly) {
+    var pts = wheelPoints(veh, veh.x), hw = S.width / 2, any = false;
+    pts.forEach(function (p) {
+      if (p.x <= 0 || p.x >= SPAN) return;
+      var seg = segAt(S, p.x); if (!seg) return; if (supportedOnly && !segAlive(S, seg)) return;
+      var t = (p.x - seg.xa) / (seg.xb - seg.xa), u = clamp((p.z + hw) / S.width, 0, 1), F = p.F, wa = 1 - t, wb = t;
+      fy[seg.a.far] -= F * wa * (1 - u); fy[seg.a.near] -= F * wa * u; fy[seg.b.far] -= F * wb * (1 - u); fy[seg.b.near] -= F * wb * u; any = true;
+    });
+    return any;
+  }
+  function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+
+  /* ---------- static analysis: direct stiffness method in 3D ---------- */
+  function staticAnalysis(S, vehicles, opts) {
+    opts = opts || {};
+    var nodes = S.nodes, bars = S.bars, n = nodes.length, i, j, k, ndof = 0, map = new Int32Array(n * 3).fill(-1);
+    for (i = 0; i < n; i++) if (!nodes[i].fixed) for (k = 0; k < 3; k++) { if (k === 2 && opts.planarZ) continue; map[3 * i + k] = ndof++; }
+    var fx = new Float64Array(n), fy = new Float64Array(n), fz = new Float64Array(n);
+    if (!opts.noDead) for (i = 0; i < n; i++) fy[i] = -nodes[i].m * G;
+    (vehicles || []).forEach(function (v) { addVehicleLoads(S, v, fx, fy, fz, false); });
+    if (opts.extra) opts.extra(fx, fy, fz);
+    var active = bars.map(function (b) { return b.alive; }), tries = 0, forces, res;
+    while (tries++ < 12) {
+      var K = [], rhs = new Float64Array(ndof);
+      for (i = 0; i < ndof; i++) K.push(new Float64Array(ndof));
+      for (i = 0; i < n; i++) { if (map[3 * i] >= 0) { rhs[map[3 * i]] = fx[i]; rhs[map[3 * i + 1]] = fy[i]; if (map[3 * i + 2] >= 0) rhs[map[3 * i + 2]] = fz[i]; } }
+      bars.forEach(function (b, bi) {           // pre-tension acts like a pair of equal and opposite loads on the bar's ends
+        var e0 = b.Lg ? b.Lg - b.L0 : 0; if (!active[bi] || e0 <= 0) return; var na = nodes[b.a], nb = nodes[b.b], dx = nb.x0 - na.x0, dy = nb.y0 - na.y0, dz = nb.z0 - na.z0, L = Math.sqrt(dx * dx + dy * dy + dz * dz), c = [dx / L, dy / L, dz / L], F0 = b.k * e0, p;
+        for (p = 0; p < 3; p++) { if (map[3 * b.a + p] >= 0) rhs[map[3 * b.a + p]] += F0 * c[p]; if (map[3 * b.b + p] >= 0) rhs[map[3 * b.b + p]] -= F0 * c[p]; }
+      });
+      bars.forEach(function (b, bi) {
+        if (!active[bi]) return; var na = nodes[b.a], nb = nodes[b.b], dx = nb.x0 - na.x0, dy = nb.y0 - na.y0, dz = nb.z0 - na.z0, L = Math.sqrt(dx * dx + dy * dy + dz * dz), c = [dx / L, dy / L, dz / L], kk = b.k;
+        var dofs = [], p, q; for (p = 0; p < 3; p++) dofs.push(map[3 * b.a + p]); for (p = 0; p < 3; p++) dofs.push(map[3 * b.b + p]);
+        for (p = 0; p < 6; p++) for (q = 0; q < 6; q++) { if (dofs[p] < 0 || dofs[q] < 0) continue; var sgn = ((p < 3) === (q < 3)) ? 1 : -1; K[dofs[p]][dofs[q]] += kk * sgn * c[p % 3] * c[q % 3]; }
+      });
+      // solve K u = rhs (Gaussian elimination, partial pivoting)
+      var A = K, bvec = Float64Array.from(rhs), maxd = 0; for (i = 0; i < ndof; i++) if (A[i][i] > maxd) maxd = A[i][i];
+      var bad = -1;
+      for (i = 0; i < ndof; i++) {
+        var piv = i, best = Math.abs(A[i][i]); for (j = i + 1; j < ndof; j++) if (Math.abs(A[j][i]) > best) { best = Math.abs(A[j][i]); piv = j; }
+        if (best < 1e-9 * maxd) { bad = i; break; }
+        if (piv !== i) { var t = A[i]; A[i] = A[piv]; A[piv] = t; var tb = bvec[i]; bvec[i] = bvec[piv]; bvec[piv] = tb; }
+        for (j = i + 1; j < ndof; j++) { var f = A[j][i] / A[i][i]; if (f === 0) continue; for (k = i; k < ndof; k++) A[j][k] -= f * A[i][k]; bvec[j] -= f * bvec[i]; }
+      }
+      if (bad >= 0) { var who = []; for (i = 0; i < n; i++) for (k = 0; k < 3; k++) if (map[3 * i + k] === bad) who.push(i); return { ok: false, reason: 'mechanism', nodes: who }; }
+      var u = new Float64Array(ndof); for (i = ndof - 1; i >= 0; i--) { var s = bvec[i]; for (j = i + 1; j < ndof; j++) s -= A[i][j] * u[j]; u[i] = s / A[i][i]; }
+      forces = bars.map(function (b, bi) {
+        if (!active[bi]) return 0; var na = nodes[b.a], nb = nodes[b.b], dx = nb.x0 - na.x0, dy = nb.y0 - na.y0, dz = nb.z0 - na.z0, L = Math.sqrt(dx * dx + dy * dy + dz * dz), c = [dx / L, dy / L, dz / L], e = 0, p;
+        for (p = 0; p < 3; p++) { var ua = map[3 * b.a + p] >= 0 ? u[map[3 * b.a + p]] : 0, ub = map[3 * b.b + p] >= 0 ? u[map[3 * b.b + p]] : 0; e += c[p] * (ub - ua); }
+        return b.k * (e + (b.Lg ? b.Lg - b.L0 : 0));
+      });
+      res = { u: u, map: map };
+      var changed = false; bars.forEach(function (b, bi) { if (active[bi] && b.cable && forces[bi] < -1e-6) { active[bi] = false; changed = true; } });
+      if (!changed) break;
+    }
+    var out = bars.map(function (b, bi) { var F = forces[bi], cap = F >= 0 ? b.capT : b.capC; return { F: F, ratio: cap > 0 ? Math.abs(F) / cap : (F > 0 ? Math.abs(F) / b.capT : 0) }; });
+    var maxRatio = 0, maxBar = -1; out.forEach(function (o, bi) { if (o.ratio > maxRatio) { maxRatio = o.ratio; maxBar = bi; } });
+    // support reactions: what the fixed nodes must push back with
+    var react = new Float64Array(n * 3); bars.forEach(function (b, bi) { if (!active[bi]) return; var na = nodes[b.a], nb = nodes[b.b], dx = nb.x0 - na.x0, dy = nb.y0 - na.y0, dz = nb.z0 - na.z0, L = Math.sqrt(dx * dx + dy * dy + dz * dz), F = forces[bi], c = [dx / L, dy / L, dz / L], p; for (p = 0; p < 3; p++) { react[3 * b.a + p] -= F * c[p] * -1; react[3 * b.b + p] += F * c[p] * -1; } });
+    return { ok: true, bars: out, maxRatio: maxRatio, maxBar: maxBar, u: res.u, map: res.map, forces: forces, active: active, fx: fx, fy: fy, fz: fz };
+  }
+
+  /* ---------- dynamic simulation ---------- */
+  function Sim(S) {
+    var n = S.nodes.length, i; this.S = S; this.n = n;
+    this.X = new Float64Array(n); this.Y = new Float64Array(n); this.Z = new Float64Array(n);
+    this.VX = new Float64Array(n); this.VY = new Float64Array(n); this.VZ = new Float64Array(n);
+    this.FX = new Float64Array(n); this.FY = new Float64Array(n); this.FZ = new Float64Array(n);
+    for (i = 0; i < n; i++) { this.X[i] = S.nodes[i].x0; this.Y[i] = S.nodes[i].y0; this.Z[i] = S.nodes[i].z0; }
+    this.t = 0; this.vehicles = []; this.events = []; this.broken = 0; this.peakRatio = 0; this.crossed = 0; this.lost = 0; this.maxLoad = 0;
+    this.wind = null; this.quake = null; this.rain = null; this.damp = 0.25; this.gScale = 1; this.dt = S.dtMax; this.maxSag = 0;
+    this.deckTrack = S.segs.length; this.collapsed = false; this.maxSag = 0;
+  }
+  Sim.prototype.addVehicle = function (type, lane, x0, scale) {
+    var vt = VEHICLES[type], hw = this.S.width / 2, z = lane === 'left' ? -hw / 2 : (lane === 'right' ? hw / 2 : 0);
+    var v = { type: type, x: x0 != null ? x0 : -vt.len / 2 - 3, z: z, v: vt.speed, state: 'driving', y: 0, vy: 0, scale: scale || 1, id: Math.random() };
+    this.vehicles.push(v); this.maxLoad = Math.max(this.maxLoad, vt.mass * (scale || 1)); return v;
+  };
+  Sim.prototype.startWind = function (dur, peak) { this.wind = { t0: this.t, dur: dur || 8, peak: peak || 40 }; };
+  Sim.prototype.startQuake = function (dur, pga) { this.quake = { t0: this.t, dur: dur || 7, a: pga || 0.45 * G, f: 1.6, ph: Math.random() * 6 }; };
+  Sim.prototype.startRain = function (dur) { this.rain = { t0: this.t, dur: dur || 12 }; };
+  Sim.prototype.envelope = function (e) { if (!e) return 0; var t = this.t - e.t0; if (t < 0 || t > e.dur) return 0; return Math.min(1, t / (e.dur * 0.2), (e.dur - t) / (e.dur * 0.25)); };
+
+  Sim.prototype.deckSurface = function (x, z) {            // deformed deck position under a point (x, z), or null if no deck
+    var S = this.S, seg = segAt(S, x); if (!seg || !segAlive(S, seg)) return null;
+    var t = (x - seg.xa) / (seg.xb - seg.xa), hw = S.width / 2, u = clamp((z + hw) / S.width, 0, 1), self = this;
+    function P(idx) { return [self.X[idx], self.Y[idx], self.Z[idx]]; }
+    var pa = [0, 0, 0], k;
+    [[seg.a.far, (1 - t) * (1 - u)], [seg.a.near, (1 - t) * u], [seg.b.far, t * (1 - u)], [seg.b.near, t * u]].forEach(function (q) { var p = P(q[0]); for (k = 0; k < 3; k++) pa[k] += p[k] * q[1]; });
+    return pa;
+  };
+
+  Sim.prototype.step = function (dt) {
+    var S = this.S, n = this.n, bars = S.bars, nodes = S.nodes, X = this.X, Y = this.Y, Z = this.Z, VX = this.VX, VY = this.VY, VZ = this.VZ, FX = this.FX, FY = this.FY, FZ = this.FZ, i, bi, b;
+    // gravity
+    var rainK = this.envelope(this.rain), windK = this.envelope(this.wind), qk = this.envelope(this.quake);
+    var gs = this.gScale; for (i = 0; i < n; i++) { FX[i] = 0; FY[i] = -nodes[i].m * G * gs; FZ[i] = 0; }
+    // rain: standing water adds weight on the deck
+    if (rainK > 0) S.segs.forEach(function (sg) { var w = 120 * G * S.width * sg.len * rainK / 4; [sg.a.near, sg.a.far, sg.b.near, sg.b.far].forEach(function (q) { FY[q] -= w; }); });
+    // wind: lateral pressure on the deck (barriers, vehicles) and on members
+    if (windK > 0) {
+      var q = 0.5 * 1.2 * Math.pow(this.wind.peak * windK, 2) * (0.85 + 0.15 * Math.sin(this.t * 3.1));
+      S.segs.forEach(function (sg) { var f = q * 2.2 * sg.len / 4; [sg.a.near, sg.a.far, sg.b.near, sg.b.far].forEach(function (id) { FZ[id] += f; }); });
+      for (bi = 0; bi < bars.length; bi++) { b = bars[bi]; if (!b.alive || b.kind === 'floor') continue; var f2 = q * 0.35 * b.L0 / 2; FZ[b.a] += f2; FZ[b.b] += f2; }
+    }
+    // vehicles
+    var self = this;
+    this.vehicles.forEach(function (v) { if (v.state === 'driving') addVehicleLoads(S, v, FX, FY, FZ, true); });
+    // members
+    for (bi = 0; bi < bars.length; bi++) {
+      b = bars[bi]; if (!b.alive) continue;
+      var ia = b.a, ib = b.b, dx = X[ib] - X[ia], dy = Y[ib] - Y[ia], dz = Z[ib] - Z[ia], L = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-9, ux = dx / L, uy = dy / L, uz = dz / L;
+      var rate = (VX[ib] - VX[ia]) * ux + (VY[ib] - VY[ia]) * uy + (VZ[ib] - VZ[ia]) * uz, F = b.k * (L - b.L0) + b.c * rate;
+      if (b.cable && F < 0) F = 0;
+      b.F = F; var cap = F >= 0 ? b.capT : b.capC, r = cap > 0 ? Math.abs(F) / cap : (F > 0 ? Infinity : 0); if (b.cable && F <= 0) r = 0;
+      b.ratio = r; if (r > b.peak) { b.peak = r; b.peakF = F; } if (r > this.peakRatio && b.kind === 'main') this.peakRatio = r;
+      FX[ia] += F * ux; FY[ia] += F * uy; FZ[ia] += F * uz; FX[ib] -= F * ux; FY[ib] -= F * uy; FZ[ib] -= F * uz;
+      if (r >= 1) { b.alive = false; b.F = 0; b.ratio = 0; b.brokeAt = this.t; this.broken++; this.events.push({ type: 'snap', bar: bi, t: this.t, x: (X[ia] + X[ib]) / 2, y: (Y[ia] + Y[ib]) / 2, z: (Z[ia] + Z[ib]) / 2, F: F }); }
+    }
+    // integrate
+    var damp = 1 / (1 + dt * this.damp);
+    for (i = 0; i < n; i++) {
+      var nd = nodes[i];
+      if (nd.fixed) {
+        if (qk > 0) { var w = 2 * Math.PI * this.quake.f, A = this.quake.a / (w * w) * qk, ph = this.quake.ph; X[i] = nd.x0 + A * Math.sin(w * this.t + ph); Z[i] = nd.z0 + A * 0.8 * Math.sin(w * this.t * 1.13 + ph * 2); VX[i] = A * w * Math.cos(w * this.t + ph); VZ[i] = A * 0.8 * w * 1.13 * Math.cos(w * this.t * 1.13 + ph * 2); }
+        else { X[i] = nd.x0; Y[i] = nd.y0; Z[i] = nd.z0; VX[i] = VY[i] = VZ[i] = 0; }
+        continue;
+      }
+      var im = 1 / nd.m; VX[i] = (VX[i] + FX[i] * im * dt) * damp; VY[i] = (VY[i] + FY[i] * im * dt) * damp; VZ[i] = (VZ[i] + FZ[i] * im * dt) * damp;
+      X[i] += VX[i] * dt; Y[i] += VY[i] * dt; Z[i] += VZ[i] * dt;
+      // terrain
+      if (X[i] < 0) { if (Y[i] < 0) { if (-X[i] < -Y[i]) { X[i] = 0; if (VX[i] < 0) VX[i] = 0; } else { Y[i] = 0; if (VY[i] < 0) VY[i] = -0.15 * VY[i]; VX[i] *= 0.9; VZ[i] *= 0.9; } } }
+      else if (X[i] > SPAN) { if (Y[i] < 0) { if (X[i] - SPAN < -Y[i]) { X[i] = SPAN; if (VX[i] > 0) VX[i] = 0; } else { Y[i] = 0; if (VY[i] < 0) VY[i] = -0.15 * VY[i]; VX[i] *= 0.9; VZ[i] *= 0.9; } } }
+      else if (Y[i] < WATER_Y) { Y[i] = WATER_Y; VY[i] = 0; VX[i] *= 0.8; VZ[i] *= 0.8; }
+    }
+    // vehicles move
+    this.vehicles.forEach(function (v) {
+      var vt = VEHICLES[v.type];
+      if (v.state === 'driving') {
+        v.x += v.v * dt;
+        if (v.x > 0 && v.x < SPAN) { var seg = segAt(S, v.x); if (!segAlive(S, seg)) { v.state = 'falling'; var sp = self.deckSurface(v.x, v.z); v.y = sp ? sp[1] : 0; v.vy = 0; self.events.push({ type: 'fall', t: self.t, vehicle: v }); } }
+        if (v.x - vt.len / 2 > SPAN + 1) { v.state = 'crossed'; self.crossed++; self.events.push({ type: 'crossed', t: self.t, vehicle: v }); }
+      } else if (v.state === 'falling') {
+        v.vy -= G * dt; v.y += v.vy * dt; v.x += v.v * dt * 0.4;
+        if (v.y < WATER_Y) { v.state = 'lost'; self.lost++; self.events.push({ type: 'splash', t: self.t, vehicle: v }); }
+      }
+    });
+    this.t += dt;
+  };
+  /* Build the bridge under gravity: ramp the weight in slowly with heavy damping, then reset the clock and the stress records. */
+  Sim.prototype.settle = function (sec) {
+    sec = sec || 3; var dt = this.dt, steps = Math.ceil(sec / dt), k, d0 = this.damp, i; this.damp = 12;
+    for (k = 0; k < steps; k++) { var u = k / steps; this.gScale = u * u * (3 - 2 * u); this.step(dt); }
+    this.gScale = 1; this.damp = d0; this.t = 0; this.peakRatio = 0; this.broken = 0; this.events = []; this.maxSag = 0;
+    for (i = 0; i < this.S.bars.length; i++) { this.S.bars[i].peak = 0; this.S.bars[i].peakF = 0; }
+    var self = this; for (i = 0; i < this.n; i++) { this.VX[i] = this.VY[i] = this.VZ[i] = 0; } return self;
+  };
+  Sim.prototype.advance = function (sec) { var dt = this.dt, steps = Math.max(1, Math.ceil(sec / dt)), h = sec / steps, k; for (k = 0; k < steps; k++) this.step(h); var sg = this.sag(); if (sg > this.maxSag) this.maxSag = sg; };
+  Sim.prototype.sag = function () { var m = 0, i, S = this.S; for (i = 0; i < this.n; i++) { var nd = S.nodes[i]; if (nd.fixed) continue; var d = nd.y0 - this.Y[i]; if (d > m) m = d; } return m; };
+
+  /* ---------- templates (side view, 24 m span, deck at y = 0) ---------- */
+  function build(d, pts, mems) { var js = pts.map(function (p) { return ensureJoint(d, p[0], p[1]); }); mems.forEach(function (m) { addMember(d, js[m[0]].id, js[m[1]].id, m[2]); }); return d; }
+  var TEMPLATES = {
+    simple: function (mat) { var d = blankDesign(), i; for (i = 0; i < 8; i++) { var a = ensureJoint(d, 3 * i, 0), b = ensureJoint(d, 3 * (i + 1), 0); addMember(d, a.id, b.id, mat); } return d; },
+    pratt: function (mat) {
+      var d = blankDesign(), n = 8, H = 4, i, B = [], T = [];
+      for (i = 0; i <= n; i++) B[i] = ensureJoint(d, 3 * i, 0); for (i = 1; i < n; i++) T[i] = ensureJoint(d, 3 * i, H);
+      function m(a, b) { addMember(d, a.id, b.id, mat); }
+      for (i = 0; i < n; i++) m(B[i], B[i + 1]); for (i = 1; i < n - 1; i++) m(T[i], T[i + 1]); m(B[0], T[1]); m(B[n], T[n - 1]); for (i = 1; i < n; i++) m(B[i], T[i]);
+      for (i = 1; i < n / 2; i++) m(T[i], B[i + 1]); for (i = n / 2 + 1; i < n; i++) m(T[i], B[i - 1]); return d;
+    },
+    warren: function (mat) {
+      var d = blankDesign(), n = 8, H = 4, i, B = [], U = [];
+      for (i = 0; i <= n; i++) B[i] = ensureJoint(d, 3 * i, 0); for (i = 0; i < n; i++) U[i] = ensureJoint(d, 3 * i + 1.5, H);
+      function m(a, b) { addMember(d, a.id, b.id, mat); }
+      for (i = 0; i < n; i++) m(B[i], B[i + 1]); for (i = 0; i < n - 1; i++) m(U[i], U[i + 1]); for (i = 0; i < n; i++) { m(B[i], U[i]); m(B[i + 1], U[i]); } return d;
+    },
+    arch: function (mat) {
+      var d = blankDesign(), i, A = [], B = [], a0 = jointAt(d, 0, -6), a8 = jointAt(d, 24, -6);
+      for (i = 1; i <= 7; i++) { var x = 3 * i; A[i] = ensureJoint(d, x, Math.round((-6 + 11 * (1 - Math.pow((x - 12) / 12, 2))) * 100) / 100); }
+      for (i = 0; i <= 8; i++) B[i] = ensureJoint(d, 3 * i, 0);
+      function m(a, b) { addMember(d, a.id, b.id, mat); }
+      m(a0, A[1]); for (i = 1; i < 7; i++) m(A[i], A[i + 1]); m(A[7], a8); for (i = 0; i < 8; i++) m(B[i], B[i + 1]); for (i = 1; i <= 7; i++) m(A[i], B[i]);
+      for (i = 1; i <= 3; i++) m(A[i], B[i + 1]); for (i = 5; i <= 6; i++) m(A[i + 1], B[i]); m(A[4], B[5]); m(A[4], B[3]); return d;
+    },
+    suspension: function (mat) {
+      var d = blankDesign(), n = 8, i, B = [], U = [], cab = 'cable';
+      for (i = 0; i <= n; i++) B[i] = ensureJoint(d, 3 * i, 0); for (i = 0; i < n; i++) U[i] = ensureJoint(d, 3 * i + 1.5, 2);
+      function m(a, b, mt) { addMember(d, a.id, b.id, mt || mat); }
+      for (i = 0; i < n; i++) m(B[i], B[i + 1]); for (i = 0; i < n - 1; i++) m(U[i], U[i + 1]); for (i = 0; i < n; i++) { m(B[i], U[i]); m(B[i + 1], U[i]); }
+      var T1 = ensureJoint(d, 7.5, 10), T2 = ensureJoint(d, 16.5, 10), C1 = ensureJoint(d, 10.5, 6), C2 = ensureJoint(d, 13.5, 6), l = jointAt(d, -6, 0), r = jointAt(d, 30, 0);
+      m(U[2], T1); m(U[5], T2); m(T1, C1, cab); m(C1, C2, cab); m(C2, T2, cab); m(l, T1, cab); m(r, T2, cab); m(C1, U[3], cab); m(C2, U[4], cab); return d;
+    }
+  };
+
+  return { G: G, SPAN: SPAN, DECK_Y: DECK_Y, WATER_Y: WATER_Y, MATERIALS: MATERIALS, VEHICLES: VEHICLES, ANCHORS: ANCHORS, blankDesign: blankDesign, jointAt: jointAt, ensureJoint: ensureJoint, addMember: addMember, hasMember: hasMember, memberLen: memberLen, jointById: jointById, cleanJoints: cleanJoints, designCost: designCost, buildStructure: buildStructure, staticAnalysis: staticAnalysis, Sim: Sim, TEMPLATES: TEMPLATES, segAt: segAt, segAlive: segAlive, wheelPoints: wheelPoints, addVehicleLoads: addVehicleLoads, isDeck: isDeck, config: cfg };
+})();
+if (typeof module !== 'undefined') module.exports = LL;
+
+</script>
+<script>
+/* ==========================================================================
+   LOAD LIMIT: app (editor, 3D renderer, game flow, UI)
+   ========================================================================== */
+(function () {
+  'use strict';
+  var TAU = Math.PI * 2, SPAN = LL.SPAN, MAT = LL.MATERIALS, VEH = LL.VEHICLES;
+  function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function smooth(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
+  function W(a) { return 'rgba(255,255,255,' + a + ')'; }
+  function Ac(a) { return 'rgba(255,79,46,' + a + ')'; }
+  var MONO = '"Martian Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace';
+  var REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function $(s) { return document.querySelector(s); }
+  function $$(s) { return Array.prototype.slice.call(document.querySelectorAll(s)); }
+  function txt(c, s, x, y, size, col, al) { c.font = '500 ' + size + 'px ' + MONO; c.fillStyle = col; c.textAlign = al || 'left'; c.textBaseline = 'alphabetic'; c.fillText(s, x, y); }
+  function fN(v, d) { return v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }).replace('-', '\u2212'); }
+  function money(v) { return '$' + Math.round(v).toLocaleString('en-US'); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function store(k, v) { try { if (v === undefined) { var s = localStorage.getItem(k); return s ? JSON.parse(s) : null; } localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
+  var MATCOL = { wood: [222, 180, 130], steel: [232, 236, 242], concrete: [176, 178, 184], cable: [255, 255, 255], carbon: [118, 124, 136] };
+  var MATW = { wood: 3.4, steel: 3.6, concrete: 5.6, cable: 1.4, carbon: 3.0 };
+
+  /* ======================================================================
+     STATE
+     ====================================================================== */
+  var D = LL.blankDesign(), hist = [], redoS = [], S0 = null;
+  var G = { mat: 'steel', tool: 'beam', sym: false, snap: true, night: false, slow: false, force: false, ts: 1, sandbox: false, auto: false, lane: 'center', vehicle: 'sedan', challenge: null, budget: 300000 };
+  var mode = 'build', sim = null, Sx = null, result = null, spawnQueue = [], autoT = 0, lesson = null, effects = [], rain = [], hover = null, pend = null, flashMsg = '', flashT = 0, testT = 0;
+  var stats = store('ll.stats') || { crossed: 0, maxLoad: 0, broken: 0, peak: 0, ach: {} };
+  var best = store('ll.best') || {};
+
+  function recalc() { S0 = LL.buildStructure(D); updateHud(); renderTable(); }
+  function cloneD(d) { return JSON.parse(JSON.stringify(d)); }
+  function pushUndo() { hist.push(JSON.stringify(D)); if (hist.length > 80) hist.shift(); redoS = []; }
+  function afterEdit() { recalc(); store('ll.auto', D); requestDraw(); }
+  function undo() { if (mode !== 'build') return; if (!hist.length) return; redoS.push(JSON.stringify(D)); D = JSON.parse(hist.pop()); afterEdit(); }
+  function redo() { if (mode !== 'build') return; if (!redoS.length) return; hist.push(JSON.stringify(D)); D = JSON.parse(redoS.pop()); afterEdit(); }
+  function flash(m) { flashMsg = m; flashT = performance.now(); var el = $('#msg'); if (el) { el.textContent = m; el.classList.add('on'); clearTimeout(flash.t); flash.t = setTimeout(function () { el.classList.remove('on'); }, 2600); } }
+
+  /* ======================================================================
+     CAMERA
+     ====================================================================== */
+  var cv = $('#cv'), ctx = cv.getContext('2d'), stage = cv.parentNode, T = { w: 0, h: 0, dpr: 1 };
+  var cam = { yaw: 0, pitch: 0, focal: 30000, dist: 800, tx: 12, ty: -1, tz: 0 }, camT = null, camMode = 'side', userZoom = 1;
+  function sideScale() { var r = region(), s = Math.min((r.x1 - r.x0) / 44, (r.y1 - r.y0) / 24); return s * userZoom; }
+  function presetFor(m) {
+    var s = sideScale();
+    if (m === 'side') return { yaw: 0, pitch: 0, focal: 30000, dist: 30000 / s, tx: 12, ty: -3.5, tz: 0 };
+    if (m === 'top') return { yaw: 0, pitch: 1.5, focal: 1500, dist: 52 / userZoom, tx: 12, ty: 0, tz: 0 };
+    return { yaw: cam3.yaw, pitch: cam3.pitch, focal: 1500, dist: cam3.dist / userZoom, tx: 12, ty: -2, tz: 0 };
+  }
+  var cam3 = { yaw: -0.72, pitch: 0.36, dist: 44 };
+  function setView(m) { camMode = m; camT = presetFor(m); $$('[data-view]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-view') === m ? 'true' : 'false'); }); requestDraw(); }
+  function stepCam(dt) {
+    if (!camT) return; var k = 1 - Math.exp(-dt * 5), keys = ['yaw', 'pitch', 'tx', 'ty', 'tz']; keys.forEach(function (q) { cam[q] += (camT[q] - cam[q]) * k; });
+    cam.focal = Math.exp(lerp(Math.log(cam.focal), Math.log(camT.focal), k)); cam.dist = Math.exp(lerp(Math.log(cam.dist), Math.log(camT.dist), k));
+  }
+  function region() { return T.w < 860 ? { x0: 14, x1: T.w - 14, y0: 50, y1: T.h - 30, cx: T.w / 2, cy: T.h / 2 } : { x0: T.w * .31, x1: T.w - 50, y0: 190, y1: T.h - 120, cx: (T.w * .31 + T.w - 50) / 2, cy: (190 + T.h - 120) / 2 }; }
+  function proj(x, y, z) {
+    var cyw = Math.cos(cam.yaw), syw = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch), r = region();
+    x -= cam.tx; y -= cam.ty; z -= cam.tz;
+    var x1 = x * cyw + z * syw, z1 = -x * syw + z * cyw, y2 = y * cp - z1 * sp, z2 = y * sp + z1 * cp, k = cam.focal / (cam.dist - z2);
+    return [r.cx + x1 * k, r.cy - y2 * k, z2, k];
+  }
+  function unproj(px, py) {                       // screen -> world on the z = 0 plane (side-view editing)
+    var r = region(), k = cam.focal / cam.dist; return [(px - r.cx) / k + cam.tx, -(py - r.cy) / k + cam.ty];
+  }
+  function isSideView() { return Math.abs(cam.yaw) < 0.04 && Math.abs(cam.pitch) < 0.04; }
+
+  /* ======================================================================
+     DRAWING
+     ====================================================================== */
+  var drawQ = true; function requestDraw() { drawQ = true; }
+  function resize() {
+    var r = stage.getBoundingClientRect(), w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height)), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    while (w * h * dpr * dpr > 6.5e6 && dpr > 1) dpr -= .25;
+    T.w = w; T.h = h; T.dpr = dpr; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.width = w + 'px'; cv.style.height = h + 'px';
+    camT = presetFor(camMode); if (!resize.done) { for (var q in camT) cam[q] = camT[q]; resize.done = true; } requestDraw();
+  }
+  function stressColor(b, base) {
+    if (!b.alive) return null; var r = b.ratio || 0;
+    if (G.force) { if (Math.abs(b.F) < 200) return W(.3); var a = .45 + .55 * Math.min(1, r * 1.6); return b.F > 0 ? 'rgba(110,176,255,' + a + ')' : 'rgba(255,138,48,' + a + ')'; }
+    var c = MATCOL[b.mat] || [255, 255, 255], t = clamp((r - 0.35) / 0.3, 0, 1), u = clamp((r - 0.65) / 0.3, 0, 1), rgb = [lerp(c[0], 255, t), lerp(c[1], 190, t), lerp(c[2], 60, t)];
+    rgb = [lerp(rgb[0], 255, u), lerp(rgb[1], 79, u), lerp(rgb[2], 46, u)]; return 'rgb(' + Math.round(rgb[0]) + ',' + Math.round(rgb[1]) + ',' + Math.round(rgb[2]) + ')';
+  }
+  function poly(c, pts, fill, stroke, lw) { c.beginPath(); pts.forEach(function (p, i) { if (i) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]); }); c.closePath(); if (fill) { c.fillStyle = fill; c.fill(); } if (stroke) { c.strokeStyle = stroke; c.lineWidth = lw || 1; c.stroke(); } }
+  function box3(cx, cy, cz, hx, hy, hz, rotZ) {              // 8 corners, optional pitch about z
+    var c = [], sx, sy, sz, cs = Math.cos(rotZ || 0), sn = Math.sin(rotZ || 0);
+    for (sx = -1; sx <= 1; sx += 2) for (sy = -1; sy <= 1; sy += 2) for (sz = -1; sz <= 1; sz += 2) { var lx = sx * hx, ly = sy * hy; c.push([cx + lx * cs - ly * sn, cy + lx * sn + ly * cs, cz + sz * hz]); } return c;
+  }
+  var FACES = [[0, 1, 3, 2], [4, 5, 7, 6], [0, 1, 5, 4], [2, 3, 7, 6], [0, 2, 6, 4], [1, 3, 7, 5]];
+  var VCOL = { bicycle: [255, 79, 46], ambulance: [250, 250, 250], sedan: [90, 150, 230], van: [235, 235, 235], boxtruck: [230, 180, 70], bus: [255, 160, 50], monster: [255, 79, 46], semi: [200, 70, 60], tank: [110, 125, 100], train: [160, 165, 175], rocket: [255, 90, 60] };
+
+  function draw(dt, now) {
+    var w = T.w, h = T.h, c = ctx, items = [], i, r = region(), side = isSideView(), S = sim ? Sx : S0;
+    c.setTransform(T.dpr, 0, 0, T.dpr, 0, 0); c.clearRect(0, 0, w, h);
+    var night = G.night;
+    /* ---- terrain ---- */
+    function Pp(x, y, z) { return proj(x, y, z); }
+    var zf = side ? 0 : 10, zb = side ? 0 : -10;
+    function quad(a, b, c2, d2) { return [Pp(a[0], a[1], a[2]), Pp(b[0], b[1], b[2]), Pp(c2[0], c2[1], c2[2]), Pp(d2[0], d2[1], d2[2])]; }
+    // water
+    var wy = LL.WATER_Y, wq = quad([-18, wy, zf], [42, wy, zf], [42, wy, zb], [-18, wy, zb]);
+    if (side) { var a0 = Pp(-40, wy, 0), a1 = Pp(70, wy, 0); c.fillStyle = night ? 'rgba(20,30,60,.55)' : 'rgba(255,255,255,.07)'; c.fillRect(0, a0[1], w, h - a0[1]); c.strokeStyle = W(.35); c.lineWidth = 1.2; c.beginPath(); c.moveTo(0, a0[1]); c.lineTo(w, a0[1]); c.stroke(); }
+    else { poly(c, wq, night ? 'rgba(20,34,70,.6)' : 'rgba(255,255,255,.07)', W(.3), 1); c.strokeStyle = W(.1); c.lineWidth = 1; for (i = -12; i <= 38; i += 2) { var q1 = Pp(i, wy, 14), q2 = Pp(i, wy, -14); c.beginPath(); c.moveTo(q1[0], q1[1]); c.lineTo(q2[0], q2[1]); c.stroke(); } for (i = -14; i <= 14; i += 2) { var q3 = Pp(-16, wy, i), q4 = Pp(40, wy, i); c.beginPath(); c.moveTo(q3[0], q3[1]); c.lineTo(q4[0], q4[1]); c.stroke(); } }
+    // cliffs
+    function cliff(x0, x1) {
+      var fill = night ? 'rgba(10,12,18,.9)' : 'rgba(18,19,22,.78)', edge = W(.45);
+      if (side) { var p = [Pp(x0, 0, 0), Pp(x1, 0, 0), Pp(x1, wy, 0), Pp(x0, wy, 0)]; poly(c, p, fill, edge, 1.4); return; }
+      var v = box3((x0 + x1) / 2, (wy) / 2, 0, (x1 - x0) / 2, -wy / 2, 10); var pr = v.map(function (p) { return Pp(p[0], p[1], p[2]); });
+      FACES.map(function (f) { var d = 0; f.forEach(function (q) { d += pr[q][2]; }); return { f: f, d: d / 4 }; }).sort(function (a, b) { return a.d - b.d; }).forEach(function (o) { poly(c, o.f.map(function (q) { return pr[q]; }), fill, edge, 1); });
+    }
+    cliff(-18, 0); cliff(SPAN, SPAN + 18);
+    // dotted grid on the editing plane
+    if (side && mode === 'build') {
+      var s = cam.focal / cam.dist, x0w = Math.floor(unproj(0, 0)[0]), x1w = Math.ceil(unproj(w, 0)[0]), y1w = Math.ceil(unproj(0, 0)[1]), y0w = Math.floor(unproj(0, h)[1]); c.fillStyle = W(.13);
+      for (var gx = Math.max(x0w, -10); gx <= Math.min(x1w, 34); gx++) for (var gy = Math.max(y0w, -12); gy <= Math.min(y1w, 18); gy++) { var q = Pp(gx, gy, 0); c.fillRect(q[0] - .8, q[1] - .8, 1.6, 1.6); }
+      for (gx = 0; gx <= SPAN; gx += 6) { var qq = Pp(gx, 0, 0); txt(c, gx + ' m', qq[0], qq[1] + 18, 9, W(.35), 'center'); }
+    }
+    // the road line on the cliffs
+    if (!side) { [[-18, 0], [SPAN, SPAN + 18]].forEach(function (e) { var a = Pp(e[0], 0.02, -3), b = Pp(e[1], 0.02, -3), a2 = Pp(e[0], 0.02, 3), b2 = Pp(e[1], 0.02, 3); poly(c, [a, b, b2, a2], 'rgba(255,255,255,.07)', null); }); }
+
+    /* ---- the bridge ---- */
+    if (mode === 'build') {
+      // design view: draw the near truss only (side) or the whole 3D model
+      S = S0;
+    }
+    function nodePos(i) { if (sim) return [sim.X[i], sim.Y[i], sim.Z[i]]; var n = S.nodes[i]; return [n.x0, n.y0, n.z0]; }
+    // deck surface
+    if (S) S.segs.forEach(function (sg) {
+      if (sim && !LL.segAlive(S, sg)) return; if (!sim && !sg.bars.length) return;
+      var pts = [sg.a.far, sg.a.near, sg.b.near, sg.b.far].map(function (id) { var p = nodePos(id); return proj(p[0], p[1], p[2]); }); if (side) return;
+      var d = (pts[0][2] + pts[2][2]) / 2; items.push({ d: d - 0.01, f: function () { poly(c, pts, 'rgba(255,255,255,.1)', 'rgba(255,255,255,.25)', 1); } });
+    });
+    var maxFail = 0;
+    if (S) S.bars.forEach(function (b, bi) {
+      var main = b.kind === 'main'; if (side && (!main || S.nodes[b.a].z0 < 0)) return; if (!b.alive) return;
+      var pa = nodePos(b.a), pb = nodePos(b.b), p1 = proj(pa[0], pa[1], pa[2]), p2 = proj(pb[0], pb[1], pb[2]), col = sim ? stressColor(b) : 'rgb(' + (MATCOL[b.mat] || [255, 255, 255]).join(',') + ')';
+      if (!col) return; var lw = (MATW[b.mat] || 3) * (main ? 1 : 0.55) * clamp(p1[3] / 25, side ? 1 : .55, side ? 1 : 1.7) * (side ? 1.2 : 1);
+      if (sim && b.ratio > 0.8) maxFail++;
+      items.push({ d: (p1[2] + p2[2]) / 2, f: function () {
+        c.strokeStyle = col; c.lineWidth = lw; c.lineCap = 'round'; if (b.cable) c.setLineDash([6, 3]);
+        c.beginPath(); c.moveTo(p1[0], p1[1]); c.lineTo(p2[0], p2[1]); c.stroke(); c.setLineDash([]); c.lineCap = 'butt';
+      } });
+    });
+    // joints
+    if (S) S.nodes.forEach(function (n, i) {
+      if (side && n.z0 < 0) return; var p = nodePos(i), pp = proj(p[0], p[1], p[2]); var rad = (n.fixed ? 4.2 : 2.8) * clamp(pp[3] / 25, side ? 1 : .6, side ? 1 : 1.6);
+      items.push({ d: pp[2] + 0.02, f: function () { c.fillStyle = n.fixed ? Ac(1) : '#18191b'; c.strokeStyle = n.fixed ? Ac(1) : W(.85); c.lineWidth = 1.2; c.beginPath(); c.arc(pp[0], pp[1], rad, 0, TAU); c.fill(); c.stroke(); } });
+    });
+    // broken-member ghosts + sparks
+    effects = effects.filter(function (e) { return now - e.t < e.life; });
+    effects.forEach(function (e) {
+      var age = (now - e.t) / e.life, p = proj(e.x, e.y, e.z);
+      items.push({ d: p[2] + 0.5, f: function () {
+        if (e.type === 'spark') { c.fillStyle = 'rgba(255,' + Math.round(180 - 100 * age) + ',60,' + (1 - age) + ')'; for (var k = 0; k < e.parts.length; k++) { var pt = e.parts[k], q = proj(e.x + pt[0] * age * 3, e.y + pt[1] * age * 3 - 4 * age * age, e.z + pt[2] * age * 3); c.fillRect(q[0] - 1.6, q[1] - 1.6, 3.2, 3.2); } }
+        else { c.strokeStyle = 'rgba(255,255,255,' + (0.7 * (1 - age)) + ')'; c.lineWidth = 1.4; c.beginPath(); c.ellipse(p[0], p[1], 8 + age * 70 * p[3] / 25, 2.5 + age * 18 * p[3] / 25, 0, 0, TAU); c.stroke(); }
+      } });
+    });
+    // vehicles
+    if (sim) sim.vehicles.forEach(function (v) {
+      if (v.state === 'lost' || v.state === 'crossed') return; var vt = VEH[v.type], sp = v.state === 'falling' ? [v.x, v.y, v.z] : sim.deckSurface(clamp(v.x, 0, SPAN), v.z), px = v.x, py, pz = v.z, rot = 0;
+      if (v.state === 'driving') { if (!sp) { sp = [px, 0, pz]; } py = sp[1]; var a = sim.deckSurface(clamp(v.x - 1.5, 0, SPAN), v.z), b2 = sim.deckSurface(clamp(v.x + 1.5, 0, SPAN), v.z); if (a && b2) rot = Math.atan2(b2[1] - a[1], b2[0] - a[0]); if (v.x < 0 || v.x > SPAN) { py = 0; rot = 0; } } else { py = v.y; rot = -v.vy * 0.05 * 0; }
+      var bx = box3(px, py + 0.35 + vt.hgt / 2 * 0.95, pz, vt.len / 2, vt.hgt / 2 * 0.95, vt.wid / 2, rot), pr = bx.map(function (q) { return proj(q[0], q[1], q[2]); }), col = VCOL[v.type] || [200, 200, 200];
+      FACES.forEach(function (f) { var d = 0; f.forEach(function (q) { d += pr[q][2]; }); d /= 4; items.push({ d: d + 0.05, f: function () { poly(c, f.map(function (q) { return pr[q]; }), 'rgba(' + col.join(',') + ',.38)', 'rgba(' + col.join(',') + ',.95)', 1.1); } }); });
+      vt.axles.forEach(function (ax) { [-1, 1].forEach(function (sd) { var wz = pz + sd * Math.max(vt.track, 0.2) / 2, wp = proj(px + ax[0] * Math.cos(rot), py + 0.35 + ax[0] * Math.sin(rot), wz); items.push({ d: wp[2] + 0.06, f: function () { c.fillStyle = 'rgba(20,20,22,.95)'; c.strokeStyle = W(.8); c.lineWidth = 1; c.beginPath(); c.arc(wp[0], wp[1], Math.max(2.5, 0.35 * wp[3]), 0, TAU); c.fill(); c.stroke(); } }); }); });
+    });
+    items.sort(function (p, q) { return p.d - q.d; }); items.forEach(function (it) { it.f(); });
+
+    /* ---- rain ---- */
+    if (sim && sim.rain && sim.envelope(sim.rain) > 0) { c.strokeStyle = 'rgba(190,210,255,.45)'; c.lineWidth = 1; for (i = 0; i < 160; i++) { var rx = -14 + ((i * 37.1 + now * 0.012 * (1 + (i % 3))) % 52), ry = 14 - ((i * 13.7 + now * 0.03 * (1 + (i % 4) * .3)) % 26), rz = -12 + (i * 7.3 % 24), q1 = proj(rx, ry, rz), q2 = proj(rx - 0.15, ry - 0.9, rz); c.beginPath(); c.moveTo(q1[0], q1[1]); c.lineTo(q2[0], q2[1]); c.stroke(); } }
+    if (sim && sim.wind && sim.envelope(sim.wind) > 0) { c.strokeStyle = 'rgba(255,255,255,.25)'; c.lineWidth = 1; for (i = 0; i < 50; i++) { var wx0 = -12 + ((i * 29.3 + now * 0.05) % 50), wy0 = -2 + (i * 5.9 % 12), wz0 = -14 + ((i * 11.1 + now * 0.012) % 4), a1 = proj(wx0, wy0, wz0), b1 = proj(wx0 + 0.4, wy0, wz0 + 3); c.beginPath(); c.moveTo(a1[0], a1[1]); c.lineTo(b1[0], b1[1]); c.stroke(); } }
+
+    /* ---- editor overlays (side view) ---- */
+    if (mode === 'build' && side) {
+      D.joints.forEach(function (j) { if (!j.anchor) return; var p = Pp(j.x, j.y, 0); c.fillStyle = Ac(.9); c.beginPath(); c.moveTo(p[0], p[1] + 2); c.lineTo(p[0] - 6, p[1] + 12); c.lineTo(p[0] + 6, p[1] + 12); c.closePath(); c.fill(); });
+      if (pend) { var a = Pp(pend.x, pend.y, 0), b = Pp(pend.tx, pend.ty, 0); c.setLineDash([5, 4]); c.strokeStyle = Ac(.95); c.lineWidth = 2; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); c.setLineDash([]); var L = Math.hypot(pend.tx - pend.x, pend.ty - pend.y); txt(c, fN(L, 1) + ' m   ' + money(L * MAT[G.mat].cost), b[0] + 12, b[1] - 10, 10, Ac(1)); if (G.sym) { var am = Pp(SPAN - pend.x, pend.y, 0), bm = Pp(SPAN - pend.tx, pend.ty, 0); c.strokeStyle = Ac(.45); c.beginPath(); c.moveTo(am[0], am[1]); c.lineTo(bm[0], bm[1]); c.stroke(); } }
+      if (hover) { var hp = Pp(hover.x, hover.y, 0); c.strokeStyle = hover.kind === 'member' ? (G.tool === 'delete' ? Ac(1) : W(.9)) : W(.9); c.lineWidth = 1.4; c.beginPath(); c.arc(hp[0], hp[1], 9, 0, TAU); c.stroke(); }
+    }
+    /* ---- on-canvas text ---- */
+    if (mode !== 'build' && sim) { txt(c, 'T+ ' + sim.t.toFixed(1) + ' s' + (G.slow ? '   slow motion' : '') + (G.ts !== 1 ? '   \u00d7' + G.ts : ''), r.x0, 24 + (T.w < 860 ? 0 : 166), 11, W(.8)); }
+    if (mode === 'build' && S0 && T.w >= 860) txt(c, D.members.length ? '' : 'Drag from an anchor point to draw your first beam.', r.cx, r.y1 + 28, 11, W(.6), 'center');
+  }
+
+  /* ======================================================================
+     EDITOR (side view)
+     ====================================================================== */
+  function snapPt(wx, wy) { if (G.snap) return [Math.round(wx * 2) / 2, Math.round(wy * 2) / 2]; return [Math.round(wx * 100) / 100, Math.round(wy * 100) / 100]; }
+  function nearestJoint(px, py, tol) {
+    var best = null, bd = tol || 14; D.joints.forEach(function (j) { var p = proj(j.x, j.y, 0), d = Math.hypot(p[0] - px, p[1] - py); if (d < bd) { bd = d; best = j; } }); return best;
+  }
+  function nearestMember(px, py) {
+    var best = null, bd = 9; D.members.forEach(function (m) {
+      var a = LL.jointById(D, m.a), b = LL.jointById(D, m.b), p1 = proj(a.x, a.y, 0), p2 = proj(b.x, b.y, 0), dx = p2[0] - p1[0], dy = p2[1] - p1[1], l2 = dx * dx + dy * dy, t = l2 ? clamp(((px - p1[0]) * dx + (py - p1[1]) * dy) / l2, 0, 1) : 0, d = Math.hypot(px - (p1[0] + t * dx), py - (p1[1] + t * dy));
+      if (d < bd) { bd = d; best = { m: m, t: t, x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) }; }
+    }); return best;
+  }
+  function inBounds(x, y) { return x >= -8 && x <= SPAN + 8 && y >= -10 && y <= 16; }
+  function budgetLeft(d) { return G.sandbox ? Infinity : G.budget - LL.buildStructure(d).cost; }
+  function addPair(d, x1, y1, x2, y2, mat) {
+    var a = LL.ensureJoint(d, x1, y1), b = LL.ensureJoint(d, x2, y2); return LL.addMember(d, a.id, b.id, mat);
+  }
+  function tryBeam(x1, y1, x2, y2) {
+    if (Math.hypot(x2 - x1, y2 - y1) < 0.4) return false; if (!inBounds(x1, y1) || !inBounds(x2, y2)) { flash('Outside the building area.'); return false; }
+    var d = cloneD(D), added = addPair(d, x1, y1, x2, y2, G.mat);
+    if (G.sym) { var sx1 = SPAN - x1, sx2 = SPAN - x2; if (Math.abs(sx1 - x1) > 1e-6 || Math.abs(sx2 - x2) > 1e-6 || Math.abs(y1 - y2) > 1e-6 || true) addPair(d, Math.round(sx1 * 1000) / 1000, y1, Math.round(sx2 * 1000) / 1000, y2, G.mat); }
+    if (!added && !G.sym) { flash('That beam already exists.'); return false; }
+    if (budgetLeft(d) < 0) { flash('Over budget: that beam would cost too much.'); return false; }
+    pushUndo(); D = d; afterEdit(); return true;
+  }
+  function removeMemberById(d, id) { d.members = d.members.filter(function (m) { return m.id !== id; }); LL.cleanJoints(d); }
+  function doDelete(hit) {
+    pushUndo(); var m = hit.m, a = LL.jointById(D, m.a), b = LL.jointById(D, m.b); removeMemberById(D, m.id);
+    if (G.sym) { var ma = LL.jointAt(D, Math.round((SPAN - a.x) * 1000) / 1000, a.y, 1e-3), mb = LL.jointAt(D, Math.round((SPAN - b.x) * 1000) / 1000, b.y, 1e-3); if (ma && mb) D.members.filter(function (q) { return (q.a === ma.id && q.b === mb.id) || (q.a === mb.id && q.b === ma.id); }).forEach(function (q) { removeMemberById(D, q.id); }); }
+    afterEdit();
+  }
+  function doScrew(hit) {
+    var m = hit.m, a = LL.jointById(D, m.a), b = LL.jointById(D, m.b), L = Math.hypot(b.x - a.x, b.y - a.y), t = clamp(Math.round(hit.t * L / 0.5) * 0.5 / L, 0, 1); if (t <= 0.02 || t >= 0.98) { flash('Click nearer the middle of the beam.'); return; }
+    pushUndo(); var x = Math.round((a.x + t * (b.x - a.x)) * 1000) / 1000, y = Math.round((a.y + t * (b.y - a.y)) * 1000) / 1000, j = LL.ensureJoint(D, x, y), mat = m.mat;
+    D.members = D.members.filter(function (q) { return q.id !== m.id; }); LL.addMember(D, a.id, j.id, mat); LL.addMember(D, j.id, b.id, mat); afterEdit();
+  }
+  function local(e) { var r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * (T.w / r.width), (e.clientY - r.top) * (T.h / r.height)]; }
+  var orbit = null;
+  cv.addEventListener('pointerdown', function (e) {
+    if (e.button && e.button !== 0) return; var p = local(e); try { cv.setPointerCapture(e.pointerId); } catch (x) { }
+    if (!isSideView() || mode !== 'build') { orbit = { sx: p[0], sy: p[1], yaw: camT ? camT.yaw : cam.yaw, pitch: camT ? camT.pitch : cam.pitch }; return; }
+    var w = unproj(p[0], p[1]);
+    if (G.tool === 'beam') { var nj = nearestJoint(p[0], p[1]); var sp = nj ? [nj.x, nj.y] : snapPt(w[0], w[1]); pend = { x: sp[0], y: sp[1], tx: sp[0], ty: sp[1] }; }
+    else { var hit = nearestMember(p[0], p[1]); if (hit) { if (G.tool === 'delete') doDelete(hit); else if (G.tool === 'screw') doScrew(hit); } }
+  });
+  cv.addEventListener('pointermove', function (e) {
+    var p = local(e);
+    if (orbit && camT) { camT.yaw = orbit.yaw + (p[0] - orbit.sx) * 0.008; camT.pitch = clamp(orbit.pitch + (p[1] - orbit.sy) * 0.008, -0.2, 1.5); cam3.yaw = camT.yaw; cam3.pitch = camT.pitch; camMode = '3d'; $$('[data-view]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-view') === '3d' ? 'true' : 'false'); }); requestDraw(); return; }
+    if (!isSideView() || mode !== 'build') return;
+    var w = unproj(p[0], p[1]), nj = nearestJoint(p[0], p[1]);
+    if (pend) { var tgt = nj ? [nj.x, nj.y] : snapPt(w[0], w[1]); pend.tx = tgt[0]; pend.ty = tgt[1]; }
+    hover = nj ? { kind: 'joint', x: nj.x, y: nj.y } : null; if (!nj && G.tool !== 'beam') { var hm = nearestMember(p[0], p[1]); if (hm) hover = { kind: 'member', x: hm.x, y: hm.y }; }
+    cv.style.cursor = G.tool === 'delete' ? 'not-allowed' : (G.tool === 'screw' ? 'copy' : 'crosshair'); requestDraw();
+  });
+  function endPtr() { orbit = null; if (pend) { var q = pend; pend = null; tryBeam(q.x, q.y, q.tx, q.ty); requestDraw(); } }
+  cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr);
+  cv.addEventListener('pointerleave', function () { hover = null; });
+  cv.addEventListener('wheel', function (e) { if (!(e.ctrlKey || e.metaKey)) return; e.preventDefault(); userZoom = clamp(userZoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1), .4, 3); camT = presetFor(camMode); requestDraw(); }, { passive: false });
+  cv.addEventListener('dblclick', function () { userZoom = 1; setView(camMode); });
+
+  /* ======================================================================
+     TEST FLOW
+     ====================================================================== */
+  function startTest(vehicles, opts) {
+    opts = opts || {}; if (mode !== 'build') endTest(); recalc();
+    if (!D.members.length) { flash('Build something first.'); return false; }
+    Sx = LL.buildStructure(D); sim = new LL.Sim(Sx); sim.settle(3); spawnQueue = (vehicles || [G.vehicle]).slice(); result = null; autoT = 0; testT = 0;
+    mode = 'test'; if (!opts.keepCam) setView('3d'); setStatus('Testing'); syncButtons(); renderTable(); return true;
+  }
+  function endTest() { sim = null; Sx = null; mode = 'build'; spawnQueue = []; result = null; effects = []; setView('side'); setStatus('Ready'); syncButtons(); recalc(); }
+  function spawn(type) { if (mode !== 'test') { if (!startTest([type], { keepCam: false })) return; } else { sim.addVehicle(type, G.lane); stats.maxLoad = Math.max(stats.maxLoad, VEH[type].mass); } }
+  function setStatus(s) { G.status = s; var el = $('#hS'); if (el) { el.textContent = s; el.parentNode.className = /Collapsed|Damaged|Over|flexible/.test(s) ? 'warn' : (/Success/.test(s) ? 'good' : ''); } }
+  function handleEvents() {
+    sim.events.splice(0).forEach(function (ev) {
+      if (ev.type === 'snap') { stats.broken++; var parts = []; for (var k = 0; k < 16; k++) parts.push([Math.random() - .5, Math.random() * .8, Math.random() - .5]); effects.push({ type: 'spark', x: ev.x, y: ev.y, z: ev.z, t: performance.now(), life: 900, parts: parts }); if (!result) setStatus('Damaged'); }
+      else if (ev.type === 'splash') { effects.push({ type: 'ring', x: ev.vehicle.x, y: LL.WATER_Y, z: ev.vehicle.z, t: performance.now(), life: 1200 }); if (!result) setStatus('Collapsed'); }
+      else if (ev.type === 'crossed') { stats.crossed++; }
+    });
+  }
+  function checkResult() {
+    if (result || !sim) return; var driving = sim.vehicles.filter(function (v) { return v.state === 'driving' || v.state === 'falling'; }).length;
+    if (driving || spawnQueue.length) return; if (!sim.vehicles.length) return;
+    var ok = sim.lost === 0, intact = sim.broken === 0, flex = sim.maxSag > 1.5, cost = Sx.cost, chal = G.challenge, over = !G.sandbox && cost > G.budget;
+    var state = ok ? (intact ? (flex ? 'Too flexible' : 'Success') : 'Damaged') : 'Collapsed';
+    result = { state: state, cost: cost, peak: sim.peakRatio, broken: sim.broken, crossed: sim.crossed, lost: sim.lost, over: over, t: sim.t, sag: sim.maxSag };
+    stats.peak = Math.max(stats.peak, sim.peakRatio); setStatus(state); showResult(); award();
+    if (chal && state === 'Success' && !over) { var prev = best[chal.id]; if (!prev || cost < prev) { best[chal.id] = Math.round(cost); store('ll.best', best); } }
+    store('ll.stats', stats); renderStats(); renderTable();
+    if (lesson) { openModal(lesson.title, '<p><strong>' + (state === 'Success' ? 'Complete!' : 'Result: ' + state) + ' Engineering explanation:</strong></p><p>' + lesson.explain + '</p>', [{ t: 'Close' }]); lesson = null; }
+  }
+  function showResult() {
+    var r = result, el = $('#result'); if (!el) return;
+    el.innerHTML = '<b>' + r.state + '</b><span>' + r.crossed + ' crossed, ' + r.lost + ' lost, ' + r.broken + ' beams broken. Peak stress ' + Math.round(r.peak * 100) + '% of capacity, largest sag ' + fN(r.sag, 2) + ' m' + (r.sag > 1.5 ? ' (limit 1.5 m)' : '') + '. Cost ' + money(r.cost) + (r.over ? ' (over budget)' : '') + '.</span>';
+  }
+
+  /* ======================================================================
+     LOOP
+     ====================================================================== */
+  var last = 0, visible = true, tabVisible = false;
+  function tick(now) {
+    requestAnimationFrame(tick); var dt = last ? Math.min(.05, (now - last) / 1000) : .016; last = now;
+    if (camT) stepCam(dt);
+    if (sim && visible && !paused) {
+      var sc = (G.slow ? 0.25 : 1) * G.ts; sim.advance(dt * sc); testT += dt * sc; handleEvents();
+      if (spawnQueue.length && (!sim.vehicles.some(function (v) { return v.state === 'driving' && v.x < 6; }))) { var type = spawnQueue.shift(); sim.addVehicle(type, G.lane); stats.maxLoad = Math.max(stats.maxLoad, VEH[type].mass); }
+      if (G.auto) { autoT += dt * sc; if (autoT > 5) { autoT = 0; sim.addVehicle(G.vehicle, G.lane); } }
+      checkResult();
+      if (sim.vehicles.length > 10) sim.vehicles = sim.vehicles.filter(function (v) { return v.state === 'driving' || v.state === 'falling'; });
+    }
+    if (visible) draw(dt, now);
+    if (now - uiAt > 250) { uiAt = now; if (tabVisible) renderTable(); updateLive(); }
+  }
+  var uiAt = 0, paused = false;
+
+  /* ======================================================================
+     UI: HUD, toolbar, accordions
+     ====================================================================== */
+  function updateHud() {
+    if (!S0) return; var spent = S0.cost, left = G.budget - spent;
+    $('#hB').textContent = G.sandbox ? 'Unlimited' : money(G.budget); $('#hSp').textContent = money(spent); $('#hSp').parentNode.className = !G.sandbox && left < 0 ? 'warn' : '';
+    $('#hN').textContent = D.members.length; var len = 0; D.members.forEach(function (m) { len += LL.memberLen(D, m); }); $('#hL').textContent = fN(len, 0) + ' m';
+    if (mode === 'build') setStatus(!G.sandbox && left < 0 ? 'Over budget' : 'Ready');
+  }
+  function syncButtons() {
+    $$('[data-tool]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-tool') === G.tool ? 'true' : 'false'); });
+    $$('[data-mat]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-mat') === G.mat ? 'true' : 'false'); });
+    var t = $('#bTest'); if (t) t.querySelector('.t').textContent = mode === 'build' ? 'Test' : 'Rebuild';
+    [['sym', 'tSym'], ['snap', 'tSnap'], ['night', 'tNight'], ['slow', 'tSlow'], ['force', 'tForce']].forEach(function (q) { var b = $('#' + q[1]); if (b) b.setAttribute('aria-pressed', String(!!G[q[0]])); });
+    $$('[data-ts]').forEach(function (b) { b.setAttribute('aria-pressed', String(+b.getAttribute('data-ts') === G.ts)); });
+    $$('[data-lane]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-lane') === G.lane)); });
+    $$('[data-veh]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-veh') === G.vehicle)); });
+    $('#cBox').checked = G.sandbox; $('#cAuto').checked = G.auto; $('#simulator').setAttribute('data-tone', G.night ? 'dark' : 'light');
+    $('#selCross').value = D.crossMat; $('#selBrace').value = D.bracing; $('#selWidth').value = D.width;
+  }
+  var ICON = {
+    test: '<path d="M5 3l8 5-8 5z"/>', undo: '<path d="M5 6.5h5a3 3 0 010 6H6M5 6.5L7.5 4M5 6.5L7.5 9"/>', reset: '<path d="M3 8a5 5 0 109-3M12 2v3H9"/>', beam: '<circle cx="3" cy="13" r="1.6"/><circle cx="13" cy="3" r="1.6"/><path d="M4.2 11.8L11.8 4.2"/>', del: '<path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/>', screw: '<circle cx="8" cy="8" r="2.4"/><path d="M2 8h3M11 8h3M8 2v3M8 11v3"/>',
+    sym: '<path d="M8 2v12M3 5l3 3-3 3M13 5l-3 3 3 3"/>', snap: '<path d="M3 3h2M8 3h2M13 3h0M3 8h2M8 8h2M3 13h2M8 13h2M13 8h0M13 13h0"/>', night: '<path d="M12 9.5A5 5 0 016.5 4 5.5 5.5 0 1012 9.5z"/>', slow: '<circle cx="8" cy="8" r="5.5"/><path d="M8 4.5V8l2.5 1.5"/>', force: '<path d="M2 12L7 4l3 5 4-6"/>',
+    side: '<path d="M2 12h12M3 12V6l5-3 5 3v6"/>', cube: '<path d="M8 2l5 3v6l-5 3-5-3V5zM8 8l5-3M8 8L3 5M8 8v6"/>', top: '<rect x="3" y="3" width="10" height="10"/><path d="M3 8h10"/>', fit: '<path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/>', plus: '<path d="M8 3v10M3 8h10"/>', minus: '<path d="M3 8h10"/>', pause: '<path d="M5.5 3v10M10.5 3v10"/>'
+  };
+  function tb(id, label, icon, extra, attrs) { return '<button type="button" class="tool' + (extra || '') + '" id="' + id + '" ' + (attrs || '') + ' title="' + label + '" aria-label="' + label + '"><svg viewBox="0 0 16 16" aria-hidden="true">' + icon + '</svg><span class="t">' + label + '</span></button>'; }
+  $('#tools').innerHTML =
+    tb('bTest', 'Test', ICON.test, ' primary') + tb('bUndo', 'Undo', ICON.undo) + tb('bReset', 'Reset', ICON.reset) + tb('bPause', 'Pause', ICON.pause) +
+    tb('tBeam', 'Beam', ICON.beam, ' sep', 'data-tool="beam" aria-pressed="true"') + tb('tDel', 'Delete', ICON.del, '', 'data-tool="delete" aria-pressed="false"') + tb('tScrew', 'Screw', ICON.screw, '', 'data-tool="screw" aria-pressed="false"') +
+    tb('tSym', 'Symmetry', ICON.sym, ' tog', 'aria-pressed="false"') + tb('tSnap', 'Grid', ICON.snap, ' tog', 'aria-pressed="true"') +
+    tb('vSide', 'Side', ICON.side, ' sep', 'data-view="side" aria-pressed="true"') + tb('v3d', '3D', ICON.cube, '', 'data-view="3d" aria-pressed="false"') + tb('vTop', 'Top', ICON.top, '', 'data-view="top" aria-pressed="false"') + tb('tFit', 'Fit', ICON.fit) + tb('tZi', 'Zoom in', ICON.plus) + tb('tZo', 'Zoom out', ICON.minus) +
+    tb('tForce', 'Force', ICON.force, ' sep tog', 'aria-pressed="false"') + tb('tSlow', 'Slow', ICON.slow, ' tog', 'aria-pressed="false"') + tb('tNight', 'Night', ICON.night, ' tog', 'aria-pressed="false"');
+  $('#tools').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return; var id = b.id;
+    if (b.hasAttribute('data-tool')) { G.tool = b.getAttribute('data-tool'); syncButtons(); return; }
+    if (b.hasAttribute('data-view')) { setView(b.getAttribute('data-view')); return; }
+    if (id === 'bTest') { if (mode === 'build') startTest(challengeVehicles()); else endTest(); }
+    else if (id === 'bUndo') undo(); else if (id === 'bReset') { if (mode !== 'build') endTest(); pushUndo(); D = LL.blankDesign(); afterEdit(); flash('Cleared.'); }
+    else if (id === 'bPause') { paused = !paused; b.querySelector('.t').textContent = paused ? 'Play' : 'Pause'; }
+    else if (id === 'tSym') G.sym = !G.sym; else if (id === 'tSnap') G.snap = !G.snap; else if (id === 'tNight') G.night = !G.night; else if (id === 'tSlow') G.slow = !G.slow; else if (id === 'tForce') G.force = !G.force;
+    else if (id === 'tFit') { userZoom = 1; setView(camMode); } else if (id === 'tZi') { userZoom = clamp(userZoom * 1.2, .4, 3); camT = presetFor(camMode); } else if (id === 'tZo') { userZoom = clamp(userZoom / 1.2, .4, 3); camT = presetFor(camMode); }
+    syncButtons(); requestDraw();
+  });
+  function challengeVehicles() { return G.challenge ? G.challenge.vehicles : [G.vehicle]; }
+
+  /* ---------- materials, settings ---------- */
+  $('#mats').innerHTML = Object.keys(MAT).map(function (k) { var m = MAT[k]; return '<button type="button" class="mat" data-mat="' + k + '" aria-pressed="' + (k === G.mat) + '"><span class="mn">' + m.name + '</span><span class="mp">$' + m.cost + '/m</span><span class="mb">' + m.blurb + '</span></button>'; }).join('');
+  $('#mats').addEventListener('click', function (e) { var b = e.target.closest('[data-mat]'); if (b) { G.mat = b.getAttribute('data-mat'); G.tool = 'beam'; syncButtons(); } });
+  $('#selCross').innerHTML = ['steel', 'wood', 'carbon'].map(function (k) { return '<option value="' + k + '">' + MAT[k].name + '</option>'; }).join('');
+  $('#selCross').addEventListener('change', function () { pushUndo(); D.crossMat = this.value; afterEdit(); });
+  $('#selBrace').addEventListener('change', function () { pushUndo(); D.bracing = +this.value; afterEdit(); });
+  $('#selWidth').addEventListener('change', function () { pushUndo(); D.width = +this.value; afterEdit(); });
+  $('#cBox').addEventListener('change', function () { G.sandbox = this.checked; updateHud(); });
+  $('#cAuto').addEventListener('change', function () { G.auto = this.checked; });
+  $$('[data-ts]').forEach(function (b) { b.addEventListener('click', function () { G.ts = +b.getAttribute('data-ts'); syncButtons(); }); });
+  $('#tmpls').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-tpl]'); if (!b) return; if (mode !== 'build') endTest(); pushUndo(); var keepCross = D.crossMat, keepB = D.bracing, keepW = D.width; D = LL.TEMPLATES[b.getAttribute('data-tpl')](b.getAttribute('data-tpl') === 'suspension' ? 'steel' : G.mat); D.crossMat = keepCross; D.bracing = keepB; D.width = keepW;
+    if (budgetLeft(D) < 0) flash('That template is over budget with the current material.'); afterEdit(); syncButtons();
+  });
+  $('#bCopy').addEventListener('click', function () {
+    if (mode !== 'build') return; pushUndo(); var add = []; D.members.forEach(function (m) { var a = LL.jointById(D, m.a), b = LL.jointById(D, m.b); if (a.x <= SPAN / 2 + 1e-6 && b.x <= SPAN / 2 + 1e-6) add.push([a, b, m.mat]); });
+    add.forEach(function (q) { addPair(D, Math.round((SPAN - q[0].x) * 1000) / 1000, q[0].y, Math.round((SPAN - q[1].x) * 1000) / 1000, q[1].y, q[2]); }); afterEdit(); flash('Copied the left half to the right.');
+  });
+  $('#vehs').innerHTML = Object.keys(VEH).map(function (k) { var v = VEH[k]; return '<button type="button" class="veh" data-veh="' + k + '" aria-pressed="' + (k === G.vehicle) + '"><span>' + v.name + '</span><em>' + v.mass.toLocaleString('en-US') + ' kg' + (v.note ? ', ' + v.note : '') + '</em></button>'; }).join('');
+  $('#vehs').addEventListener('click', function (e) { var b = e.target.closest('[data-veh]'); if (!b) return; G.vehicle = b.getAttribute('data-veh'); syncButtons(); spawn(G.vehicle); });
+  $$('[data-lane]').forEach(function (b) { b.addEventListener('click', function () { G.lane = b.getAttribute('data-lane'); syncButtons(); }); });
+  [['bWind', function () { sim.startWind(8, 40); }], ['bQuake', function () { sim.startQuake(7); }], ['bRain', function () { sim.startRain(12); }]].forEach(function (q) { $('#' + q[0]).addEventListener('click', function () { if (mode !== 'test') { if (!startTest([], { keepCam: false })) return; } q[1](); }); });
+
+  /* ---------- challenges ---------- */
+  var CH = [
+    { id: 'first', name: 'First Crossing', vehicles: ['sedan'], budget: 90000, desc: 'Get a sedan across the gorge.' },
+    { id: 'bus', name: 'Bus Route', vehicles: ['bus'], budget: 110000, desc: 'A city bus has to make it over.' },
+    { id: 'haul', name: 'Heavy Haul', vehicles: ['semi'], budget: 150000, desc: 'An 18 tonne semi, no broken beams.' },
+    { id: 'tank', name: 'Tank Crossing', vehicles: ['tank'], budget: 220000, desc: '60 tonnes on tracks.' },
+    { id: 'rail', name: 'Rail Link', vehicles: ['train'], budget: 300000, desc: '200 tonnes. Think carbon fiber and deep trusses.' },
+    { id: 'storm', name: 'Storm Front', vehicles: ['boxtruck'], budget: 160000, desc: 'A box truck crosses, then a gale hits.', disaster: 'wind' },
+    { id: 'penny', name: 'Penny Pincher', vehicles: ['van'], budget: 30000, desc: 'A van, on the thinnest budget you can manage.' }
+  ];
+  function buildChallenges() {
+    $('#chals').innerHTML = CH.map(function (c) { return '<button type="button" class="chal" data-ch="' + c.id + '" aria-pressed="' + (G.challenge && G.challenge.id === c.id) + '"><span>' + c.name + '</span><em>' + money(c.budget) + (best[c.id] ? ', best ' + money(best[c.id]) : '') + '</em><small>' + c.desc + '</small></button>'; }).join('') + '<button type="button" class="btn" id="bExit"' + (G.challenge ? '' : ' hidden') + '>\u2715 Exit challenge</button>';
+  }
+  $('#chals').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-ch]'), ex = e.target.closest('#bExit');
+    if (ex) { G.challenge = null; G.budget = 300000; G.sandbox = false; buildChallenges(); syncButtons(); updateHud(); $('#chalBanner').textContent = ''; return; }
+    if (!b) return; var c = CH.filter(function (q) { return q.id === b.getAttribute('data-ch'); })[0]; if (mode !== 'build') endTest(); G.challenge = c; G.budget = c.budget; G.sandbox = false; G.vehicle = c.vehicles[0]; pushUndo(); D = LL.blankDesign(); buildChallenges(); afterEdit(); syncButtons();
+    $('#chalBanner').textContent = c.name + ': ' + c.desc + ' Budget ' + money(c.budget) + '.'; flash('Challenge: ' + c.name);
+  });
+  function award() {
+    var a = stats.ach, r = result, newly = [];
+    function give(id, name) { if (!a[id]) { a[id] = true; newly.push(name); } }
+    if (r.crossed > 0) give('first', 'First Crossing'); if (r.crossed > 0 && r.cost < 20000 && r.broken === 0) give('penny', 'Penny Pincher'); if (sim.vehicles.some(function (v) { return v.type === 'tank' && v.state === 'crossed'; }) && r.broken === 0) give('tank', 'Heavy Metal');
+    if (sim.vehicles.some(function (v) { return v.type === 'train' && v.state === 'crossed'; }) && r.broken === 0) give('train', 'Train Spotter'); if (r.crossed > 0 && r.peak < 0.5 && r.broken === 0) give('safe', 'Safety Margin'); if (r.crossed > 0 && D.members.length >= 20 && r.broken === 0) give('tri', 'Triangulator');
+    if (sim.envelope && sim.wind && sim.t > sim.wind.t0 + sim.wind.dur && r.broken === 0) give('storm', 'Storm Chaser'); if (sim.quake && sim.t > sim.quake.t0 + sim.quake.dur && r.broken === 0) give('quake', 'Shaken, Not Stirred');
+    if (newly.length) flash('Achievement: ' + newly.join(', ')); store('ll.stats', stats); renderStats();
+  }
+  var ACH = [['first', 'First Crossing', 'Get any vehicle across.'], ['penny', 'Penny Pincher', 'Cross under $20,000 with no breaks.'], ['tank', 'Heavy Metal', 'Send the tank across intact.'], ['train', 'Train Spotter', 'Send the train across intact.'], ['safe', 'Safety Margin', 'Cross with peak stress under 50%.'], ['tri', 'Triangulator', 'Cross with 20 or more beams.'], ['storm', 'Storm Chaser', 'Survive a wind burst.'], ['quake', 'Shaken, Not Stirred', 'Survive an earthquake.']];
+  function renderStats() {
+    $('#sCross').textContent = stats.crossed || '\u2014'; $('#sLoad').textContent = stats.maxLoad ? stats.maxLoad.toLocaleString('en-US') + ' kg' : '\u2014'; $('#sBroke').textContent = stats.broken || '\u2014'; $('#sPeak').textContent = stats.peak ? Math.round(stats.peak * 100) + '%' : '\u2014';
+    $('#achs').innerHTML = ACH.map(function (a) { var on = stats.ach[a[0]]; return '<li class="' + (on ? 'on' : '') + '"><b>' + (on ? '\u2713 ' : '') + a[1] + '</b><span>' + a[2] + '</span></li>'; }).join('');
+    $('#rStats').innerHTML = $('#sGrid').innerHTML;
+  }
+
+  /* ---------- modals ---------- */
+  function openModal(title, html, buttons) {
+    var m = $('#modal'); $('#mTitle').textContent = title; $('#mBody').innerHTML = html; var bt = $('#mBtns'); bt.innerHTML = '';
+    (buttons || [{ t: 'Close' }]).forEach(function (b) { var el = document.createElement('button'); el.type = 'button'; el.className = 'btn' + (b.primary ? ' primary' : ''); el.textContent = b.t; el.addEventListener('click', function () { if (!b.keep) closeModal(); if (b.fn) b.fn(); }); bt.appendChild(el); });
+    m.hidden = false; document.documentElement.classList.add('modal-open'); var f = bt.querySelector('button'); if (f) f.focus();
+  }
+  function closeModal() { $('#modal').hidden = true; document.documentElement.classList.remove('modal-open'); }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
+  $('#modal').addEventListener('click', function (e) { if (e.target.id === 'modal') closeModal(); });
+
+  var LESSONS = [
+    { title: 'Lesson 1: Why beams fail', setup: function () { D = LL.TEMPLATES.simple('steel'); }, goal: 'A row of beams pinned end to end has no triangles. Press Test with a bus and watch it sag like a rope.', veh: 'bus', explain: 'Pinned beams can only push or pull along their length. A straight chain of them has no way to resist a downward load except by stretching into a curve, so it sags badly or snaps. The fix is geometry, not stronger beams.' },
+    { title: 'Lesson 2: Triangle strength', setup: function () { D = LL.TEMPLATES.pratt('steel'); }, goal: 'A Pratt truss is built from triangles. Test it with the same bus.', veh: 'bus', explain: 'A triangle cannot change shape without a side changing length, so every load becomes pure tension or compression along the beams. A square can fold into a diamond with no resistance. Triangles turn weight into axial force, and axial force is what beams are good at.' },
+    { title: 'Lesson 3: Material choice', setup: function () { D = LL.TEMPLATES.pratt('wood'); }, goal: 'Same truss, built from wood. Test it with a semi, then rebuild it in steel and try again.', veh: 'semi', explain: 'Wood is cheap but long wooden beams buckle under compression long before they yield. Steel and carbon fiber have far more stiffness for their size, so they resist buckling. Cost per metre is not cost per strength: compare what a material can carry, not what it costs.' },
+    { title: 'Lesson 4: Tension vs compression', setup: function () { D = LL.TEMPLATES.warren('steel'); G.force = true; }, goal: 'Force Diagram is on. Blue beams are in tension, orange in compression. Test it and watch the colors change as the vehicle crosses.', veh: 'van', explain: 'Under a load in the middle, the top chord is squeezed (compression) and the bottom chord is stretched (tension). Compression members can buckle, so they need to be short or stiff. Tension members just need enough area, which is why cables can be so thin.' }
+  ];
+  $('#lessons').innerHTML = LESSONS.map(function (l, i) { return '<button type="button" class="btn" data-les="' + i + '">' + (i + 1) + ': ' + l.title.replace(/^Lesson \d: /, '') + '</button>'; }).join('');
+  $('#lessons').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-les]'); if (!b) return; var l = LESSONS[+b.getAttribute('data-les')]; if (mode !== 'build') endTest(); pushUndo(); l.setup(); G.vehicle = l.veh; lesson = l; afterEdit(); syncButtons();
+    openModal(l.title, '<p>' + l.goal + '</p>', [{ t: 'Start', primary: true, fn: function () { startTest([l.veh]); } }, { t: 'Just build' }]);
+  });
+  var QUIZ = [
+    ['Which shape makes a pin-jointed frame rigid?', ['Square', 'Triangle', 'Pentagon', 'Circle'], 1, 'A triangle cannot deform without changing the length of a side.'],
+    ['In a beam loaded in the middle, the top chord is in...', ['Tension', 'Compression', 'Shear only', 'Nothing'], 1, 'The top is squeezed while the bottom is stretched.'],
+    ['Which member type can only carry tension?', ['Steel tube', 'Wood beam', 'Cable', 'Concrete'], 2, 'Cables go slack when pushed, so they only work in tension.'],
+    ['Long thin members under compression usually fail by...', ['Buckling', 'Melting', 'Stretching', 'Rusting'], 0, 'Euler buckling: the load capacity falls with the square of the length.'],
+    ['What does a wind burst mainly test?', ['Vertical load', 'Lateral stability and bracing', 'Cable length', 'Deck friction'], 1, 'Wind pushes sideways, so the bracing in the deck and top planes carries it.'],
+    ['Doubling a column\u2019s length changes its buckling load by about...', ['No change', 'Half', 'A quarter', 'Double'], 2, 'Euler load is proportional to 1 / L squared.']
+  ];
+  var qi = 0, qs = 0;
+  function showQuiz() {
+    if (qi >= QUIZ.length) { openModal('Quiz complete', '<p>You scored <strong>' + qs + ' / ' + QUIZ.length + '</strong>.</p>', [{ t: 'Again', fn: function () { qi = 0; qs = 0; showQuiz(); } }, { t: 'Close' }]); return; }
+    var q = QUIZ[qi]; openModal('Quiz ' + (qi + 1) + ' / ' + QUIZ.length, '<p>' + q[0] + '</p><div class="opts">' + q[1].map(function (o, i) { return '<button type="button" class="btn opt" data-o="' + i + '">' + o + '</button>'; }).join('') + '</div><p class="qx" id="qx"></p>', [{ t: 'Next', keep: true, fn: function () { if (!$('#qx').getAttribute('data-done')) return; qi++; showQuiz(); } }]);
+    $$('.opt').forEach(function (b) { b.addEventListener('click', function () { if ($('#qx').getAttribute('data-done')) return; var i = +b.getAttribute('data-o'), ok = i === q[2]; if (ok) qs++; b.classList.add(ok ? 'right' : 'wrong'); $$('.opt')[q[2]].classList.add('right'); $('#qx').setAttribute('data-done', '1'); $('#qx').textContent = (ok ? 'Correct. ' : 'Not quite. ') + q[3]; }); });
+  }
+  $('#bQuiz').addEventListener('click', function () { qi = 0; qs = 0; showQuiz(); });
+
+  function reportHTML() {
+    var S = sim ? Sx : S0, by = {}, tot = 0, mass = 0; S.bars.forEach(function (b) { var m = MAT[b.mat]; by[m.name] = by[m.name] || { len: 0, cost: 0, n: 0 }; by[m.name].len += b.Lg; by[m.name].cost += b.Lg * m.cost; by[m.name].n++; tot += b.Lg * m.cost; mass += m.massPerM * b.Lg; });
+    var rows = Object.keys(by).map(function (k) { return '<tr><td>' + k + '</td><td>' + by[k].n + '</td><td>' + fN(by[k].len, 1) + ' m</td><td>' + money(by[k].cost) + '</td></tr>'; }).join('');
+    var st = LL.staticAnalysis(S0, [{ type: G.vehicle, x: 12, z: 0, scale: 1 }]), weak = '';
+    if (st.ok) { var idx = st.bars.map(function (b, i) { return [i, b.ratio]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 5); weak = idx.map(function (q) { var b = S0.bars[q[0]]; return '<li>' + MAT[b.mat].name + ' ' + b.kind + ', ' + fN(b.Lg, 1) + ' m: ' + Math.round(q[1] * 100) + '% of capacity</li>'; }).join(''); }
+    return '<table class="rt"><thead><tr><th>Material</th><th>Bars</th><th>Length</th><th>Cost</th></tr></thead><tbody>' + rows + '<tr class="tot"><td>Total</td><td>' + S.bars.length + '</td><td>' + fN(S.length, 1) + ' m</td><td>' + money(tot) + '</td></tr></tbody></table>' +
+      '<p>Structure mass: <strong>' + fN(mass / 1000, 1) + ' t</strong>. Deck width ' + D.width + ' m, bracing level ' + D.bracing + ', cross members ' + MAT[D.crossMat].name + '.</p>' +
+      (st.ok ? '<p>With a ' + VEH[G.vehicle].name + ' at midspan, the five most stressed bars (static analysis):</p><ul>' + weak + '</ul><p>Safety factor on the worst bar: <strong>' + fN(1 / Math.max(st.maxRatio, 1e-9), 2) + '</strong>.</p>' : '<p>Static analysis is not available for this design (a mechanism, or slack cables). Run the test to see stresses.</p>') +
+      (result ? '<p>Last test: <strong>' + result.state + '</strong>, peak stress ' + Math.round(result.peak * 100) + '%.</p>' : '');
+  }
+  $('#bReport').addEventListener('click', function () { openModal('Engineering report', reportHTML(), [{ t: 'Close' }]); });
+  $('#bCsv').addEventListener('click', function () { var S = sim ? Sx : S0, L = ['bar,kind,material,length_m,peak_force_kN,capacity_tension_kN,capacity_compression_kN,peak_ratio']; S.bars.forEach(function (b, i) { L.push([i + 1, b.kind, b.mat, b.Lg.toFixed(3), (b.peakF / 1e3).toFixed(3), (b.capT / 1e3).toFixed(1), (b.capC / 1e3).toFixed(1), (b.peak || 0).toFixed(3)].join(',')); }); download('loadlimit-bars.csv', L.join('\n')); });
+  function download(name, text) { var blob = new Blob([text], { type: 'text/csv;charset=utf-8' }), url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function () { URL.revokeObjectURL(url); }, 500); }
+  function metrics() { var S = S0, len = 0; D.members.forEach(function (m) { len += LL.memberLen(D, m); }); var st = LL.staticAnalysis(S, [{ type: 'bus', x: 12, z: 0, scale: 1 }]); return { cost: Math.round(S.cost), beams: D.members.length, mass: Math.round(S.mass), ratio: st.ok ? Math.round(st.maxRatio * 100) : null, last: result ? result.state : '\u2014' }; }
+  $('#bCmpSave').addEventListener('click', function () { var list = store('ll.cmp') || []; var m = metrics(); m.name = 'Design ' + (list.length + 1); m.design = D; list.push(m); if (list.length > 4) list.shift(); store('ll.cmp', list); flash('Saved for comparison.'); });
+  $('#bCmp').addEventListener('click', function () {
+    var list = store('ll.cmp') || []; if (!list.length) { openModal('Compare designs', '<p>Nothing saved yet. Use "Save for comparison" on a design first.</p>'); return; }
+    openModal('Compare designs', '<table class="rt"><thead><tr><th>Design</th><th>Cost</th><th>Beams</th><th>Mass</th><th>Bus stress</th><th>Last test</th></tr></thead><tbody>' + list.map(function (m) { return '<tr><td>' + esc(m.name) + '</td><td>' + money(m.cost) + '</td><td>' + m.beams + '</td><td>' + fN(m.mass / 1000, 1) + ' t</td><td>' + (m.ratio == null ? 'n/a' : m.ratio + '%') + '</td><td>' + esc(m.last) + '</td></tr>'; }).join('') + '</tbody></table>', [{ t: 'Clear all', fn: function () { store('ll.cmp', []); } }, { t: 'Close' }]);
+  });
+  $('#bSave').addEventListener('click', function () { store('ll.save', D); flash('Design saved.'); });
+  $('#bRestore').addEventListener('click', function () { var d = store('ll.auto') || store('ll.save'); if (!d) { flash('No auto-save found.'); return; } if (mode !== 'build') endTest(); pushUndo(); D = d; afterEdit(); syncButtons(); flash('Restored.'); });
+  $('#bBest').addEventListener('click', function () { openModal('Best scores', '<table class="rt"><thead><tr><th>Challenge</th><th>Budget</th><th>Lowest cost</th></tr></thead><tbody>' + CH.map(function (c) { return '<tr><td>' + c.name + '</td><td>' + money(c.budget) + '</td><td>' + (best[c.id] ? money(best[c.id]) : '\u2014') + '</td></tr>'; }).join('') + '</tbody></table>'); });
+  $('#bLog').addEventListener('click', function () { openModal('Update log', '<ul class="log"><li><b>3D edition.</b> Every design is built as two parallel trusses with floor beams and lateral bracing. Orbit the camera, test wind, torsion from off-centre vehicles and earthquakes.</li><li><b>Real structural analysis.</b> Direct stiffness statics, Euler buckling, tension-only cables with pre-tension, and a dynamic simulation with progressive collapse.</li><li><b>New:</b> bracing levels, deck width, lane choice, rain loading, engineering report with safety factor.</li><li><b>Still here:</b> five materials, eleven vehicles, templates, lessons, quiz, challenges, achievements, comparison and saves.</li></ul>'); });
+  var STEPS = [['Welcome', 'Load Limit is a bridge engineering lab. Build a bridge across the gorge, then test it with real vehicles.'], ['Draw beams', 'Pick a material, then drag from an anchor point (the red triangles on the cliffs) to draw beams. Joints snap to a grid.'], ['Cost matters', 'Every metre costs money. Stay inside the budget shown above, and watch the cost of the second truss and bracing too.'], ['Use triangles', 'Triangles are rigid. Squares fold. Try a template (Pratt or Warren) to see how engineers do it.'], ['Test it', 'Press Test, then spawn vehicles. Beams turn amber, then red, then snap. Force Diagram shows tension (blue) and compression (orange).'], ['Go 3D', 'Your bridge is a real 3D structure. Switch to 3D and drag to orbit. Try a wind burst to test the bracing.']];
+  var si = 0;
+  function tutorial() { var s = STEPS[si]; openModal(s[0] + '  ' + (si + 1) + ' / ' + STEPS.length, '<p>' + s[1] + '</p>', [{ t: 'Skip' }, { t: si < STEPS.length - 1 ? 'Next' : 'Start building', primary: true, keep: true, fn: function () { si++; if (si < STEPS.length) tutorial(); else { closeModal(); store('ll.seen', 1); } } }]); }
+  $('#bHelp').addEventListener('click', function () { si = 0; tutorial(); });
+  $('#bKeys').addEventListener('click', function () { openModal('Keyboard shortcuts', '<ul class="keys"><li><kbd>Ctrl+Z</kbd> Undo</li><li><kbd>S</kbd> Symmetry</li><li><kbd>M</kbd> Slow motion</li><li><kbd>N</kbd> Night mode</li><li><kbd>D</kbd> Delete mode</li><li><kbd>B</kbd> Beam mode</li><li><kbd>R</kbd> Rebuild / reset test</li><li><kbd>F</kbd> Force diagram</li><li><kbd>1 2 3</kbd> Side, 3D, top view</li><li><kbd>Esc</kbd> Reset zoom</li><li><kbd>Ctrl + scroll</kbd> Zoom</li></ul>'); });
+  document.addEventListener('keydown', function (e) {
+    var t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return; if (!$('#modal').hidden) return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; } if (e.ctrlKey || e.metaKey || e.altKey) return; var k = e.key.toLowerCase();
+    if (k === 's') G.sym = !G.sym; else if (k === 'm') G.slow = !G.slow; else if (k === 'n') G.night = !G.night; else if (k === 'd') G.tool = G.tool === 'delete' ? 'beam' : 'delete'; else if (k === 'b') G.tool = 'beam'; else if (k === 'f') G.force = !G.force;
+    else if (k === 'r') { if (mode !== 'build') endTest(); } else if (k === '1') setView('side'); else if (k === '2') setView('3d'); else if (k === '3') setView('top'); else if (k === 'escape') { userZoom = 1; setView(camMode); } else if (k === '?') $('#bKeys').click(); else return;
+    syncButtons(); requestDraw();
+  });
+
+  /* ---------- table on the results slide ---------- */
+  function renderTable() {
+    var S = sim ? Sx : S0, el = $('#tBars'); if (!S || !el) return; var rows = [], i;
+    var list = S.bars.map(function (b, i) { return { b: b, i: i }; }).filter(function (o) { return o.b.kind === 'main' && S.nodes[o.b.a].z0 > 0; });
+    list.sort(function (p, q) { return (q.b.ratio || 0) - (p.b.ratio || 0) || p.i - q.i; });
+    var h = '<thead><tr><th>Beam</th><th>Material</th><th>Length</th><th>Force (kN)</th><th></th><th>Stress</th></tr></thead><tbody>';
+    if (!list.length) h += '<tr><td colspan="6" class="empty">No beams yet. Build something, then press Test.</td></tr>';
+    list.slice(0, 40).forEach(function (o) { var b = o.b, pc = Math.min(1, b.ratio || 0), cls = !b.alive ? 't-zer' : (b.ratio > .9 ? 't-com' : (b.ratio > .6 ? 't-amb' : '')); h += '<tr><td>#' + (b.dm) + '</td><td>' + MAT[b.mat].name + '</td><td>' + fN(b.Lg, 1) + ' m</td><td class="' + cls + '">' + (b.alive ? (sim ? (b.F >= 0 ? '+' : '') + fN(b.F / 1e3, 1) : '\u2014') : 'broken') + '</td><td><span class="fb"><i style="width:' + Math.round(pc * 100) + '%"></i></span></td><td class="' + cls + '">' + (sim ? Math.round((b.ratio || 0) * 100) + '%' : '\u2014') + '</td></tr>'; });
+    el.innerHTML = h + '</tbody>';
+  }
+  function updateLive() {
+    if (!sim) { $('#hSt').textContent = '\u2014'; return; }
+    var sag = sim.sag(); $('#hSt').textContent = fN(sim.peakRatio * 100, 0) + '%'; $('#hSag').textContent = fN(sag, 2) + ' m';
+  }
+  $('#hSt').textContent = '\u2014';
+
+  function buildMatTable() {
+    var h = '<thead><tr><th>Material</th><th>Cost</th><th>Section</th><th>Tension</th><th>Compression</th><th>Mass</th></tr></thead><tbody>';
+    Object.keys(MAT).forEach(function (k) { var m = MAT[k]; h += '<tr><td>' + m.name + '</td><td>$' + m.cost + '/m</td><td>' + fN(m.A * 1e4, 0) + ' cm\u00b2</td><td>' + fN(m.capT / 1e3, 0) + ' kN</td><td>' + (m.cable ? 'none' : fN(m.capCyield / 1e3, 0) + ' kN yield') + '</td><td>' + fN(m.massPerM, 1) + ' kg/m</td></tr>'; });
+    h += '<tr><td colspan="6" class="empty">Compression capacity is the smaller of this yield load and the Euler buckling load, which falls with the square of the length.</td></tr></tbody>';
+    $('#matTable').innerHTML = h;
+  }
+  /* ---------- boot ---------- */
+  function boot() {
+    buildMatTable();
+    var saved = store('ll.auto'); if (saved && saved.members && saved.members.length) D = saved;
+    resize(); if (window.ResizeObserver) new ResizeObserver(resize).observe(stage); else window.addEventListener('resize', resize);
+    buildChallenges(); renderStats(); recalc(); syncButtons(); setStatus('Ready'); requestAnimationFrame(tick);
+    if (!store('ll.seen') && !window.__noTutorial) setTimeout(tutorial, 900);
+  }
+  window.LoadLimit = { D: function () { return D; }, setD: function (d) { D = d; afterEdit(); }, G: G, startTest: startTest, endTest: endTest, sim: function () { return sim; }, mode: function () { return mode; }, result: function () { return result; }, stats: stats, spawn: spawn, proj: proj, unproj: unproj, cam: cam, setView: setView, tryBeam: tryBeam, undo: undo, CH: CH, LESSONS: LESSONS, QUIZ: QUIZ, S0: function () { return S0; }, recalc: recalc, camMode: function () { return camMode; }, setPaused: function (p) { paused = p; } };
+  boot();
+
+  var slides = $$('[data-slide]');
+  function setActive(i) { $$('[data-rail]').forEach(function (a) { var on = +a.getAttribute('data-rail') === i; a.classList.toggle('is-active', on); if (on) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current'); }); $$('[data-nav]').forEach(function (a) { a.classList.toggle('is-active', +a.getAttribute('data-nav') === i); }); }
+  function onScroll() { document.documentElement.classList.toggle('is-top', window.scrollY < 40); var vh = window.innerHeight, cur = 0; slides.forEach(function (s, i) { var r = s.getBoundingClientRect(); if (r.top <= vh * .5 && r.bottom > vh * .5) cur = i; }); setActive(cur); }
+  window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (es) { visible = es[0].isIntersecting; if (visible) requestDraw(); }, { rootMargin: '8% 0px' }).observe($('#simulator'));
+    new IntersectionObserver(function (es) { tabVisible = es[0].isIntersecting; if (tabVisible) renderTable(); }, { rootMargin: '8% 0px' }).observe($('#analysis'));
+  }
+  if ('IntersectionObserver' in window && !REDUCED) {
+    var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }); }, { threshold: .2 });
+    slides.forEach(function (s) { io.observe(s); });
+    var fr = (document.fonts && document.fonts.ready) ? Promise.race([document.fonts.ready, new Promise(function (r) { setTimeout(r, 1500); })]) : Promise.resolve();
+    fr.then(function () { requestAnimationFrame(function () { $('#simulator').classList.add('in'); }); });
+  } else { slides.forEach(function (s) { s.classList.add('in'); }); }
+})();
+
+</script>
+</body>
+</html>
